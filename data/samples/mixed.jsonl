@@ -1,0 +1,14 @@
+{"type": "intent", "name": "payment_status", "description": "Resident asks whether a payment was received or posted", "examples": ["did my rent go through", "my payment isn't showing"]}
+{"type": "intent", "name": "maintenance_request", "description": "Resident reports something broken or needing service", "examples": ["dishwasher won't drain", "no hot water"]}
+{"type": "intent", "name": "charge_explanation", "description": "Resident asks what a charge on the statement is for", "examples": ["what is this $85 water charge"]}
+{"type": "intent", "name": "human_handoff", "description": "Resident asks for a person", "examples": ["can I talk to someone"]}
+{"type": "faq", "id": "kb-002", "question": "How much is the late fee?", "answer": "The late fee is $75, plus $10 per day after the 5th, up to the maximum allowed by state law.", "category": "payments"}
+{"type": "faq", "id": "kb-005", "question": "What counts as an emergency maintenance request?", "answer": "No heat or AC in extreme temperatures, no hot water, flooding, sewage backup, gas odor, no electricity, or an unsafe or unsecured unit.", "category": "maintenance"}
+{"type": "resident", "resident_id": "R-3391", "name": "Dana Whitfield", "unit": "4B", "property": "Parkview Commons", "language": "en", "balance": 0.0}
+{"type": "resident", "resident_id": "R-2210", "name": "Marcus Oyelaran", "unit": "2A", "property": "Parkview Commons", "language": "en", "balance": 1450.0}
+{"type": "charge", "charge_id": "CH-55102", "resident_id": "R-3391", "statement_date": "2026-08-01", "description": "Water and sewer allocation", "amount": 84.12}
+{"type": "work_order", "work_order_id": "WO-88214", "resident_id": "R-2210", "category": "plumbing", "priority": "emergency", "status": "dispatched"}
+{"type": "conversation", "conversation_id": "c-1001", "turns": [{"role": "customer", "text": "my rent shows unpaid but I paid Friday"}, {"role": "agent", "text": "I see a payment of $1,450.00 received 2026-08-08 that posted this morning."}], "resolution": "resolved"}
+{"type": "term", "term": "NSF fee", "synonyms": ["returned payment fee"], "definition": "A $35 fee charged when a payment is returned unpaid by the bank."}
+{"type": "policy", "id": "p-001", "topic": "fair_housing", "rule": "Do not discuss protected classes, steer residents toward or away from units, or give legal advice. Route to the property manager."}
+{"type": "policy", "id": "p-002", "topic": "rent_pricing", "rule": "Do not speculate about future rent amounts or pricing decisions. Refer to the renewal offer when it is issued."}
