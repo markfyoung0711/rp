@@ -250,7 +250,7 @@ footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);color:v
 <ol class="plain">
   <li><b>Send time</b> = last contact + the day number in the task ID, at 09:00 for SMS, 10:00 for email or voice, moved to the next day if already past. Inferred from two samples; configurable.</li>
   <li><b>Channel</b> = the first preferred channel with consent. Voice sends an automated call script; its shape is inferred, because the samples show none.</li>
-  <li><b>Next action:</b> a new lead starts a welcome sequence, short if the move-in is within <b>50 days</b> (learned from the samples: 32 was short, 68 was long) and long otherwise; anyone else gets a follow-up in 3 days.</li>
+  <li><b>Next action:</b> a new lead starts a welcome sequence: the short one if move-in is within <b>50 days</b>, the long one otherwise. Anyone else gets a follow-up in 3 days. The 50-day cutoff is learned from the samples, where a 32-day lead got the short sequence and a 68-day lead got the long one.</li>
   <li><b>Property details</b> (tour days, amenities, links) come from one config file, never invented. An unknown property gets a generic message, the default brand, and a flagged configuration gap.</li>
   <li><b>Brand style</b> isn’t defined in the spec, so I modelled it as a per-property brand profile with a check on every message.</li>
   <li><b>Language:</b> the recipient’s, if the property offers it; otherwise the property’s default. English, Spanish and French templates exist; Arabic (right-to-left) and Hindi are drafts flagged for native-speaker review. SMS in those scripts is limited to 210 characters, and English STOP always works.</li>
