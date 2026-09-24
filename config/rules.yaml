@@ -25,6 +25,10 @@ next_action:
   horizon_threshold_days: 45       # days from send date to move date: <= short, > long
   follow_up_days: 3
   follow_up_days_without_dayN: 2   # when the task_id has no dayN; the input's follow_up_days or the property's setting wins
+  follow_up_days_by_stage:         # per record type (lifecycle_stage), from the hold-out; checked before dayN
+    welcome: 2
+    cancelled_manager: 2
+    loyalty_engage: 5
 
 stop_keywords: [STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT, OPTOUT, "OPT OUT", REVOKE]
 # Each language's own STOP keywords, protected terms and banned phrases live in config/templates/<lang>.yaml
