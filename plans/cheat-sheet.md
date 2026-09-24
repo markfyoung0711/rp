@@ -52,6 +52,49 @@ If the diagram doesn't render in your viewer, open the image: [`docs/design.png`
 
 ---
 
+## If they ask "how is it designed?": about 3 minutes
+
+**Order: the picture, then why, then where.** Then invite questions.
+
+**1. The picture (the flowchart above).** Say: "Records come in, get read and normalized, and then code makes every decision: consent, channel, timing, next action. Only the wording can come from AI, and even that goes through the guards. Learned rules feed the decisions from the side."
+
+**2. Five design decisions, each with its reason**
+
+| Decision | Why |
+|---|---|
+| **Code decides, AI only writes words** | Consent, timing and fair housing must be guaranteed and explainable, not just probably right |
+| **Rules learned from labelled examples, offline and versioned** | Learning you can see and measure; at runtime the bot just applies a reviewed file |
+| **Stateless batch: one record in, one decision out** | It's simple, parallelizes, and needs no database for the task (the platform is designed, not built) |
+| **Fail safe: never crash, never guess** | A bad or unclear record becomes a no-send with a reason |
+| **Everything explains itself** | A "why" list on every decision; RUN STATS checks their own thresholds |
+
+**3. Where it lives: every box in the diagram is a file**
+
+```
+bot.py                  the command you run (batch in, results out, RUN STATS)
+learn.py                learns rules from labelled examples (offline)
+outreach/
+  reader.py             "Reader"        tolerate messy input, refuse images
+  normalize.py          "Normalize"     Levels 1-3 for unfamiliar records
+  decide.py             STOP, channel, send time, next action   (all code)
+  compose.py            "Template"      the wording
+  llm.py                "Claude"        optional wording, cost-guarded
+  guards.py             "Guards"        opt-out, PII, fair housing, brand
+  pipeline.py           wires the steps together, one record at a time
+  learn.py / pii.py     rule learning / personal-data audit
+config/
+  rules.yaml            hand-written defaults
+  learned.yaml          rules learned from the samples (the "model")
+  properties.yaml       property facts and brand profile
+tests/ + scripts/       tests, edge cases, decision table, checks, reports
+plans/                  spec, design, decisions, reviews, documentation
+```
+
+**Close with:** "Every box in the diagram is a file you can open, and every decision is in `plans/decisions.md` with its reason."
+To prove, run: `ls outreach config` (then open any file they point at)
+
+---
+
 ## "What kind of AI is this?"
 
 **Q: Is this an AI agent?**
