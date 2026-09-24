@@ -100,9 +100,6 @@ td:first-child{min-width:130px}
   <h1>Plain-English answers to tough AI questions</h1>
   <p class="lede">Answer in one sentence, then run the command under “To prove, run:” in <code>~/realpage</code>. Every command is free and takes under a second.</p>
 </header>
-<blockquote>
-<p>For Mark, during the interview. Each answer is short enough to say out loud; <strong>To prove, run:</strong> gives the command that proves it. Don't claim more than what's here.</p>
-</blockquote>
 <h2>The one-sentence pitch</h2>
 <p>"It's a decision bot for leasing outreach. It <strong>learns its rules from labelled examples</strong>, applies them with <strong>deterministic code</strong> for anything legal or compliance-related, and can optionally use <strong>Claude to write the wording</strong>. Every decision explains itself, and nothing personal leaks."</p>
 <hr />
@@ -153,7 +150,8 @@ td:first-child{min-width:130px}
 <h2>"Does it really learn?"</h2>
 <h3 class="q">How do you know it's learning and not just memorizing?</h3><p class="a">"Leave-one-out testing: hide one example, learn from the rest, predict the hidden one. With two samples it scores 0/2, which proves the rules really come from the data. Add two more examples and it predicts both samples correctly."
 <span class="prove">To prove, run:</span> <code class="run">uv run learn.py plans/sample.jsonl tests/labelled_extra.jsonl --eval</code></p>
-<h3 class="q">What's a hold-out set, and did you train on it?</h3><p class="a">"Test data kept hidden until the end, to check the system generalizes. No, I won't learn from your 12. That would be training on the test set, which makes the score meaningless."</p>
+<h3 class="q">What's a hold-out set, and did you train on it?</h3><p class="a">"Test data kept hidden until the end, to check the system generalizes. No, I won't learn from your 12. That would be training on the test set, which makes the score meaningless."
+<span class="prove">To prove, run:</span> <code class="run">cp plans/sample.jsonl /tmp/holdout.jsonl &amp;&amp; uv run learn.py /tmp/holdout.jsonl</code> (it refuses any file with "hold" in its name)</p>
 <h3 class="q">What's overfitting here?</h3><p class="a">"Rules that fit two examples perfectly but break on new ones. That's why every learned rule shows how many examples back it, the defaults are configurable, and I tested 16 made-up edge cases, plus a blind run on records it had never seen."</p>
 <h3 class="q">What's few-shot or in-context learning?</h3><p class="a">"You show the model a few worked examples in the prompt and it copies the pattern, with no retraining. In <code>--llm</code> mode the two samples are the examples for writing style."</p>
 <hr />
@@ -179,6 +177,8 @@ td:first-child{min-width:130px}
 <h3 class="q">PII?</h3><p class="a">"Only the first name leaves the bot, because the expected output needs it. Twenty rental-PII categories are planted in tests: 81 items withheld, 0 leaked. No balances or account numbers ever go in a text or email."
 <span class="prove">To prove, run:</span> <code class="run">uv run bot.py -i tests/pii_cases.jsonl</code></p>
 <h3 class="q">Bias in the model?</h3><p class="a">"The model can't affect who gets contacted, when, or what's offered. Code decides that. It only phrases a sentence from allow-listed facts."</p>
+<h3 class="q">How do you know the channel logic is right in every case?</h3><p class="a">"I don't sample it, I enumerate it. Every combination of the three consent flags and every ordering of preferred channels: 120 cases, each checked against the written policy. All 120 match, and it never sends without consent. The table also surfaced a policy question for an SME: 11 people consented to a channel that isn't in their preference list, so we don't send. Should consent alone be enough?"
+<span class="prove">To prove, run:</span> <code class="run">uv run python scripts/decision_table.py</code> (then open <code>plans/decision-table-channel.md</code>)</p>
 <h3 class="q">Data poisoning?</h3><p class="a">"Learning is the one place where data changes behavior, so labels are validated. Bad names, out-of-hours send times and malformed examples are rejected and reported."</p>
 <h3 class="q">Explainability?</h3><p class="a">"Every output has a 'why' list: the consent check, channel choice, the send-time arithmetic, the rule used, and a confidence level."</p>
 <hr />

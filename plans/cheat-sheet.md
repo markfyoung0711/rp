@@ -141,6 +141,10 @@ To prove, run: `uv run bot.py -i tests/pii_cases.jsonl`
 **Q: Bias in the model?**
 A: "The model can't affect who gets contacted, when, or what's offered. Code decides that. It only phrases a sentence from allow-listed facts."
 
+**Q: How do you know the channel logic is right in every case?**
+A: "I don't sample it, I enumerate it. Every combination of the three consent flags and every ordering of preferred channels: 120 cases, each checked against the written policy. All 120 match, and it never sends without consent. The table also surfaced a policy question for an SME: 11 people consented to a channel that isn't in their preference list, so we don't send. Should consent alone be enough?"
+To prove, run: `uv run python scripts/decision_table.py` (then open `plans/decision-table-channel.md`)
+
 **Q: Data poisoning?**
 A: "Learning is the one place where data changes behavior, so labels are validated. Bad names, out-of-hours send times and malformed examples are rejected and reported."
 

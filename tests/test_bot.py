@@ -230,3 +230,9 @@ def test_learning_refuses_holdout_files(tmp_path):
     r = subprocess.run(["uv", "run", "learn.py", str(f), "--write"], cwd=ROOT, capture_output=True, text=True)
     assert r.returncode == 4 and "refusing to learn from hold-out data" in r.stderr
     assert "Holdout" not in (ROOT / "config" / "learned.yaml").read_text()
+
+
+def test_channel_decision_table_matches_policy_for_all_120_combinations():
+    import subprocess
+    r = subprocess.run(["uv", "run", "python", "scripts/decision_table.py"], cwd=ROOT, capture_output=True, text=True)
+    assert r.returncode == 0 and "120 match the policy" in r.stdout, r.stdout[-400:]

@@ -41,6 +41,17 @@ def pending_llm_call(item, model: str, now: datetime | None):
         return None
 
 
+def _no_channel_reason(case: Case) -> str:
+    """Say precisely why no channel was usable (the decision table showed one reason wasn't enough)."""
+    supported = compose.config.rules()["channels"]["supported"]
+    consented = {c for c, ok in case.consent.items() if ok}
+    if consented & set(case.preferences) - set(supported):
+        return "preferred channel not supported yet (" + ", ".join(sorted(consented & set(case.preferences) - set(supported))) + ")"
+    if consented & set(supported) - set(case.preferences):
+        return "consented channel not in preferences (" + ", ".join(sorted(consented & set(supported) - set(case.preferences))) + ")"
+    return "no channel with consent"
+
+
 def _no_send(task_id: str, reason: str, why: list, warnings: list, action: str = "suppress", **meta) -> dict:
     why.append(f"decision: do not send ({reason})")
     return {
@@ -80,7 +91,7 @@ async def _process(item, use_llm: bool, model: str, now: datetime | None) -> dic
     channel = decide.choose_channel(case, why)
     if not channel:
         action = "human_review" if case.record_type == "unknown" or not case.consent else "suppress"
-        return _no_send(case.task_id, "no channel with consent", why, case.warnings, action=action, **base_meta)
+        return _no_send(case.task_id, _no_channel_reason(case), why, case.warnings, action=action, **base_meta)
 
     send_at = decide.send_time(case, channel, now, why)
     draft = compose.draft(case, channel, send_at, why)

@@ -34,6 +34,12 @@ Every command runs from the project folder (`~/realpage`) with no network, unles
 | 13 | `… --only unknown_property` | Property with no facts on file → no invented tour days, amenities or links |
 | 14 | `… --only spanish_tour` | Spanish email; no `dayN` → the stage's default offset |
 
+## 2b. Exhaustive channel policy
+
+| # | Command | What it shows |
+|---|---|---|
+| 14b | `uv run python scripts/decision_table.py` | All 120 consent × preference combinations run through the bot and checked against the written policy: 120/120; never sends without consent; precise reasons for the 48 no-sends; 11 rows flagged for an SME question. Table: `plans/decision-table-channel.md` |
+
 ## 3. Unseen record types (Levels 1–3)
 
 | # | Command | What it shows |
@@ -73,6 +79,6 @@ Every command runs from the project folder (`~/realpage`) with no network, unles
 | # | Command | What it shows |
 |---|---|---|
 | 27 | `uv run pytest` | Unit tests: samples, edge cases, determinism, input formats, garbage, binary refusal |
-| 28 | `uv run python scripts/run_checks.py --full` | The code-review checklist, automated: 32 checks, including a clean-clone install and the cost guard |
+| 28 | `uv run python scripts/run_checks.py --full` | The code-review checklist, automated: 33 checks, including a clean-clone install and the cost guard |
 
 **Suggested live order (about 6 minutes):** 1 → L1 → L3 → 2 → 8 → 4 → 17 → 20 → 22 → 24, then the hold-out itself.

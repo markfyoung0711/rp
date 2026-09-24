@@ -145,6 +145,10 @@ def main(full: bool) -> int:
         lh = sh("uv", "run", "learn.py", str(hf))
         check("P0", "learn.py refuses hold-out files (exit 4)", lh.returncode == 4 and "hold-out" in lh.stderr, lh.stderr[-200:])
 
+    dt = sh("uv", "run", "python", "scripts/decision_table.py")
+    check("P0", "decision table: all 120 consent × preference combinations match the policy",
+          dt.returncode == 0 and "120 match the policy" in dt.stdout, dt.stdout[-300:])
+
     # D. Static
     check("P0", "pytest", sh("uv", "run", "pytest", "-q").returncode == 0)
     ruff = sh("uv", "run", "ruff", "check", "outreach", "bot.py", "tests", "--select", "E9,F")
