@@ -108,8 +108,11 @@ def main() -> None:
         sys.exit("No records found in the input.")
 
     if args.only:
-        keep = [i for i, r in enumerate(records)
-                if args.only in (r.get("task_id") or r.get("Task_ID") or "" if isinstance(r, dict) else r.task_id)]
+        def label(r) -> str:  # task_id, or the whole record for shapes that have none (Level 3)
+            if isinstance(r, ReadError):
+                return r.task_id
+            return str(r.get("task_id") or r.get("Task_ID") or json.dumps(r, ensure_ascii=False))
+        keep = [i for i, r in enumerate(records) if args.only in label(r)]
         records = [records[i] for i in keep]
         if not records:
             sys.exit(f"No record's task_id contains {args.only!r}.")
