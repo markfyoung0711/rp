@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from outreach.pipeline import process
+from outreach.pipeline import process, sent_message
 from outreach.reader import ReadError, read_records
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -41,7 +41,7 @@ def test_edge_cases_never_crash_and_are_safe():
     results = run(EDGES)
     assert len(results) == len(read_records(EDGES))
     for r in results:
-        msg = r["next_message"]
+        msg = sent_message(r)
         if msg:
             assert "stop" in msg["body"].lower(), r["task_id"]
             assert msg["channel"] in ("sms", "email", "voice")
@@ -50,10 +50,10 @@ def test_edge_cases_never_crash_and_are_safe():
 
 def test_specific_edges():
     r = by_id(run(EDGES))
-    assert r["edge_no_consent_day0"]["next_message"] is None
+    assert sent_message(r["edge_no_consent_day0"]) is None
     voice = r["edge_voice_only_day1"]["next_message"]
     assert voice["channel"] == "voice" and voice["subject"] is None and "press 9" in voice["body"]
-    assert r["edge_inbound_stop_day1"]["next_message"] is None
+    assert sent_message(r["edge_inbound_stop_day1"]) is None
     assert r["edge_sms_preferred_not_consented_day0"]["next_message"]["channel"] == "email"
     kids = r["edge_fair_housing_kids_day0"]["next_message"]["body"].lower()
     assert "kid" not in kids and "daycare" not in kids
@@ -62,7 +62,7 @@ def test_specific_edges():
     assert "$" not in r["edge_renewal_es_day0"]["next_message"]["body"]
     assert r["edge_unknown_cta_phoenix_day1"]["next_message"]["send_at"].endswith("-07:00")
     assert r["edge_malformed"]["next_action"]["type"] == "human_review"
-    assert r["MISC-1"]["next_message"] is None
+    assert sent_message(r["MISC-1"]) is None
 
 
 def test_reader_formats():
@@ -87,7 +87,7 @@ def test_garbage_file_reads_every_repairable_record():
     assert any(isinstance(r, ReadError) and r.task_id == "g_truncated_day0" for r in batch.records)
     assert any("Task_ID" in str(r) for r in batch.records if isinstance(r, dict))  # key variant kept for normalize
     results = run(GARBAGE)
-    sent = [r for r in results if r["next_message"]]
+    sent = [r for r in results if sent_message(r)]
     assert len(sent) == 13 and all("STOP" in r["next_message"]["body"] for r in sent)
 
 
@@ -122,7 +122,7 @@ def test_no_pii_in_any_output_field():
     for r in run(text):
         blob = json.dumps(r, ensure_ascii=False)
         assert not [p for p in planted if p in blob], (r["task_id"], [p for p in planted if p in blob])
-        if r["next_message"]:
+        if sent_message(r):
             assert r["next_message"]["body"].startswith(("Hi Taylor", "Hi there"))
 
 
@@ -164,7 +164,7 @@ def test_messages_never_carry_money_or_account_numbers():
     assert "money amount in message" in guards.check_message("sms", None, "Hi, your balance is $412.50. Reply STOP to opt out.", "Reply STOP to opt out.")
     assert any("account" in p for p in guards.check_message("sms", None, "Acct 000123456789. Reply STOP to opt out.", "Reply STOP to opt out."))
     for r in run((ROOT / "tests" / "pii_cases.jsonl").read_text()):
-        if r["next_message"]:
+        if sent_message(r):
             assert not guards.MONEY.search(r["next_message"]["body"])
 
 
@@ -368,7 +368,7 @@ def test_spanish_opt_out_and_fair_housing_terms():
         rec["input"]["language"] = "es"
         rec["input"]["last_message"] = reply
         out = run(json.dumps(rec))[0]
-        assert out["next_message"] is None and "opt-out" in out["next_action"]["reason"], reply
+        assert sent_message(out) is None and out["next_action"]["reason"] == "opted_out", reply
     assert guards.protected_hits("Ideal para familias con niños")          # familia + niño
     assert guards.protected_hits("cerca de una iglesia")
     assert any("off-brand" in p for p in guards.check_brand("sms", None, "¡Última oportunidad! Oferta exclusiva", None, None))
@@ -402,7 +402,7 @@ def test_language_is_chosen_from_templates_and_property_settings():
     # French opt-out words stop messages too
     r = _rec("fr", "Maison Verte Apartments")
     r["input"]["last_message"] = "ARRÊT svp"
-    assert run(json.dumps(r))[0]["next_message"] is None
+    assert sent_message(run(json.dumps(r))[0]) is None
 
 
 def test_template_validator_catches_incomplete_languages():
@@ -462,7 +462,7 @@ def test_arabic_and_hindi_messages_are_compliant_and_rtl_safe():
     for lang, reply in (("ar", "إيقاف من فضلك"), ("hi", "कृपया बंद करें")):
         r = _rec(lang, "Noor Gardens Apartments")
         r["input"]["last_message"] = reply
-        assert run(json.dumps(r))[0]["next_message"] is None, lang
+        assert sent_message(run(json.dumps(r))[0]) is None, lang
     assert guards.protected_hits("مناسب لعائلة مع أطفال") and guards.protected_hits("मंदिर के पास")
     assert any("off-brand" in p for p in guards.check_brand("sms", None, "سارع! فرصة أخيرة", None, None, "ar"))
     # the 210-character UCS-2 limit applies, isolates not counted
@@ -507,7 +507,7 @@ def test_horizon_threshold_edge_is_inclusive():
 ])
 def test_stop_keyword_matching(reply, opted_out):
     out = _one(_sample0(last_message=reply))
-    assert (out["next_message"] is None) == opted_out, reply
+    assert (sent_message(out) is None) == opted_out, reply
 
 
 def test_late_night_contact_sends_next_morning_inside_legal_window():

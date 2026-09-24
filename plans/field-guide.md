@@ -76,7 +76,7 @@ The bot reads the first two parts and produces its own version of the third. The
 | `next_message.cta` | `{"type": "schedule_tour", "options": ["Thu", "Fri"]}` | **The call to action** (see below) |
 | `next_action` | `{"type": "start_cadence", "name": "prospect_welcome_short_horizon"}` | What happens **after** this message (see below) |
 
-If the bot decides not to send, `next_message` is `null` and `next_action` says why, e.g. `{"type": "suppress", "reason": "no channel with consent"}`.
+If the bot decides not to send, `next_message` has `channel: "none"` with null fields and `next_action` says why, e.g. `{"type": "no_op", "reason": "no_contact_consent"}`. The plain-English reason is in `meta.no_send_reason`.
 
 ---
 

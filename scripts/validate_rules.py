@@ -24,7 +24,7 @@ def brand_preview() -> list[str]:
     import json
 
     from outreach import guards
-    from outreach.pipeline import process
+    from outreach.pipeline import process, sent_message
 
     base = json.loads((ROOT / "plans" / "sample.jsonl").read_text().splitlines()[0])
     base.pop("expected")
@@ -40,7 +40,7 @@ def brand_preview() -> list[str]:
             rec["channel_preferences"] = [ch]
             rec["consent"] = {f"{c}_opt_in": c == ch for c in ("sms", "email", "voice")}
             out = asyncio.run(process(rec))
-            msg = out["next_message"]
+            msg = sent_message(out)
             if not msg:
                 problems.append(f"{name} / {ch}: no message ({out['next_action'].get('reason')})")
                 continue

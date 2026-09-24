@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from outreach.pipeline import process  # noqa: E402
+from outreach.pipeline import NO_MESSAGE, process, sent_message  # noqa: E402
 from outreach.reader import read_records  # noqa: E402
 
 SAMPLES = ROOT / "plans" / "sample.jsonl"
@@ -85,8 +85,8 @@ def main(full: bool) -> int:
     }
     for name, (rec, want) in cases.items():
         o = run([rec])[0]
-        got = (o["next_message"] or {}).get("channel")
-        shape_ok = want is not None or (o["next_message"] is None and "reason" in o["next_action"])
+        got = (sent_message(o) or {}).get("channel")
+        shape_ok = want is not None or (o["next_message"] == NO_MESSAGE and "reason" in o["next_action"])
         check("P0", f"channel: {name}", got == want and shape_ok, f"got {got}")
 
     # B. Formats and isolation
@@ -95,12 +95,13 @@ def main(full: bool) -> int:
     check("P0", "pretty-printed input", len(read_records(json.dumps(samples[0], indent=2) * 2)) == 2)
     check("P0", "no trailing newline", len(read_records(SAMPLES.read_text().rstrip("\n"))) == 2)
     mixed = run(read_records(one + "\n{broken\n" + one))
-    check("P0", "malformed record isolated", [bool(m["next_message"]) for m in mixed] == [True, False, True])
+    check("P0", "malformed record isolated", [bool(sent_message(m)) for m in mixed] == [True, False, True])
     garbage = sh("uv", "run", "bot.py", "-i", str(ROOT / "tests" / "garbage_inputs.txt"), "--quiet")
-    sent = sum(1 for line in garbage.stdout.splitlines() if line.startswith("{") and '"next_message": {' in line)
+    sent = sum(1 for line in garbage.stdout.splitlines() if line.startswith("{") and '"next_message": {' in line
+               and '"channel": "none"' not in line)
     check("P0", "garbage input: 13 of 14 records recovered, exit 0", garbage.returncode == 0 and sent == 13, f"sent {sent}")
     utf16 = sh("uv", "run", "bot.py", "-i", str(ROOT / "tests" / "garbage_utf16.jsonl"), "--quiet")
-    check("P0", "UTF-16 input file", utf16.returncode == 0 and utf16.stdout.count('"next_message": {') == 2)
+    check("P0", "UTF-16 input file", utf16.returncode == 0 and utf16.stdout.count('"next_message": {') - utf16.stdout.count('"channel": "none"') == 2)
     edge_out = sh("uv", "run", "bot.py", "-i", str(EDGES), "--quiet")
     check("P0", "edge cases run, exit 0", edge_out.returncode == 0, edge_out.stderr[-200:])
 
@@ -111,7 +112,7 @@ def main(full: bool) -> int:
     steer = re.compile(r"\b(famil|kids?|children|adults only|religio|disab)", re.I)
     bad = []
     for o in all_out:
-        m = o["next_message"]
+        m = sent_message(o)
         if not m:
             continue
         if "stop" not in m["body"].lower():

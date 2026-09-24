@@ -254,7 +254,7 @@ footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);color:v
   <li><b>Property details</b> (tour days, amenities, links) come from one config file, never invented. An unknown property gets a generic message, the default brand, and a flagged configuration gap.</li>
   <li><b>Brand style</b> isn’t defined in the spec, so I modelled it as a per-property brand profile with a check on every message.</li>
   <li><b>Language:</b> the recipient’s, if the property offers it; otherwise the property’s default. English, Spanish and French templates exist; Arabic (right-to-left) and Hindi are drafts flagged for native-speaker review. SMS in those scripts is limited to 210 characters, and English STOP always works.</li>
-  <li><b>No-send shape</b> (<code>next_message: null</code> plus a reason) is my choice; the spec doesn’t define one.</li>
+  <li><b>No-send shape</b> (<code>channel: "none"</code> with null fields, plus <code>no_op</code> and a reason code) follows the hold-out’s expected output; the spec doesn’t define one.</li>
   <li><b>Personal data:</b> only the first name, in the greeting. <code>task_id</code> is the only join key; identity belongs to the system of record.</li>
 </ol>
 

@@ -19,7 +19,7 @@ from .normalize import normalize
 
 
 SAFE_TOKEN = re.compile(r"^[a-z][a-z0-9_]{0,39}$")       # learned names must be plain identifiers
-KNOWN_ACTIONS = {"start_cadence", "follow_up_in_days", "suppress", "human_review", "none"}
+KNOWN_ACTIONS = {"start_cadence", "follow_up_in_days", "no_op", "suppress", "human_review", "none"}
 
 
 def _label_problem(msg, action) -> str | None:
@@ -30,7 +30,7 @@ def _label_problem(msg, action) -> str | None:
         return "next_action missing or not an object"
     if action.get("type") not in KNOWN_ACTIONS:
         return "next_action.type not recognized"
-    if msg and msg.get("channel") not in config.rules()["channels"]["supported"]:
+    if msg and msg.get("channel") not in [*config.rules()["channels"]["supported"], "none"]:
         return "channel not a supported channel"
     if action.get("type") == "start_cadence" and not SAFE_TOKEN.match(str(action.get("name", ""))):
         return "cadence name not a plain identifier"
@@ -74,7 +74,7 @@ def learn(records: list) -> tuple[dict, list[str]]:
         except Exception:  # noqa: BLE001 -- a bad example is skipped, never fatal
             skipped["input could not be normalized"] += 1
             continue
-        if not msg:
+        if not msg or msg.get("channel") == "none":
             no_send += 1
             continue
         ch = msg.get("channel")

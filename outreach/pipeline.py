@@ -6,6 +6,15 @@ from . import compose, decide, guards
 from .normalize import Case, normalize
 from .reader import ReadError
 
+# No-send shape, as the hold-out's expected output defines it: a message with channel "none" and null fields.
+NO_MESSAGE = {"channel": "none", "send_at": None, "subject": None, "body": None, "cta": None}
+
+
+def sent_message(result: dict) -> dict | None:
+    """The message a result sends, or None for a no-send."""
+    msg = result.get("next_message")
+    return msg if msg and msg.get("channel") != "none" else None
+
 
 def decide_only(case: Case) -> tuple[str, compose.Draft] | None:
     """Channel and template draft for a case (used to build few-shot examples)."""
@@ -67,14 +76,16 @@ def _no_channel_reason(case: Case) -> str:
     return "no channel with consent"
 
 
-def _no_send(task_id: str, reason: str, why: list, warnings: list, action: str = "suppress", **meta) -> dict:
+def _no_send(task_id: str, reason: str, why: list, warnings: list, action: str = "no_op", code: str | None = None,
+             **meta) -> dict:
+    """`reason` is the plain-English why; `code` is the machine reason in next_action (defaults to `reason`)."""
     why.append(f"decision: do not send ({reason})")
     return {
         "task_id": task_id,
-        "next_message": None,
-        "next_action": {"type": action, "reason": reason},
+        "next_message": dict(NO_MESSAGE),
+        "next_action": {"type": action, "reason": code or reason},
         "why": why,
-        "meta": {**meta, "warnings": warnings},      # same key order as a send
+        "meta": {**meta, "no_send_reason": reason, "warnings": warnings},
     }
 
 
@@ -101,12 +112,15 @@ async def _process(item, use_llm: bool, model: str, now: datetime | None) -> dic
 
     stop = decide.stop_gate(case, why)
     if stop:
-        return _no_send(case.task_id, stop, why, case.warnings, **base_meta)
+        return _no_send(case.task_id, stop, why, case.warnings, code="opted_out", **base_meta)
 
     channel = decide.choose_channel(case, why)
     if not channel:
-        action = "human_review" if case.record_type == "unknown" or not case.consent else "suppress"
-        return _no_send(case.task_id, _no_channel_reason(case), why, case.warnings, action=action, **base_meta)
+        review = case.record_type == "unknown" or not case.consent
+        reason = _no_channel_reason(case)
+        code = None if review else "no_contact_consent" if reason == "no channel with consent" else "no_usable_channel"
+        return _no_send(case.task_id, reason, why, case.warnings, action="human_review" if review else "no_op",
+                        code=code, **base_meta)
 
     send_at = decide.send_time(case, channel, now, why)
     draft = compose.draft(case, channel, send_at, why)

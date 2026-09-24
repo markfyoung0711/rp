@@ -383,7 +383,7 @@ td code{white-space:nowrap}
 </tr>
 </tbody>
 </table></div>
-<p>If the bot decides not to send, <code>next_message</code> is <code>null</code> and <code>next_action</code> says why, e.g. <code>{"type": "suppress", "reason": "no channel with consent"}</code>.</p>
+<p>If the bot decides not to send, <code>next_message</code> has <code>channel: "none"</code> with null fields and <code>next_action</code> says why, e.g. <code>{"type": "no_op", "reason": "no_contact_consent"}</code>. The plain-English reason is in <code>meta.no_send_reason</code>.</p>
 <hr />
 <h2>Terms that come up</h2>
 <p><strong>CTA (call to action):</strong> the one thing the message asks the person to do. In marketing, every message should have one clear CTA.

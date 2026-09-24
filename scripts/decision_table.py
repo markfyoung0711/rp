@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from outreach.pipeline import process  # noqa: E402
+from outreach.pipeline import process, sent_message  # noqa: E402
 
 CHANNELS = ["sms", "email", "voice"]
 SUPPORTED = {"sms", "email", "voice"}
@@ -46,10 +46,11 @@ def main() -> int:
         return [(c, p, await t) for c, p, t in tasks]
 
     for consent, prefs, out in asyncio.run(run_all()):
-        got = (out["next_message"] or {}).get("channel")
+        got = (sent_message(out) or {}).get("channel")
         want = policy(consent, prefs)
-        note = "SME: consent without preference" if got is None and "not in preferences" in out["next_action"].get("reason", "") else ""
-        rows.append((prefs, consent, got, out["next_action"].get("reason", ""), want, note))
+        reason = out["meta"].get("no_send_reason", "")
+        note = "SME: consent without preference" if got is None and "not in preferences" in reason else ""
+        rows.append((prefs, consent, got, reason, want, note))
         if got != want or (got and not consent.get(got)):
             bad.append((prefs, consent, got, want))
 

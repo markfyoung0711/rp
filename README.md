@@ -32,7 +32,7 @@ Input can be JSONL, a JSON array, a wrapper object, or pretty-printed objects, i
  "meta": {"record_type", "confidence", "mode", "required_states", "warnings", "gaps" (only when present)}}
 ```
 
-`next_message` and `next_action` follow the samples' `expected` shape. `meta.gaps` flags configuration gaps a downstream system can act on, such as `property_facts_missing` (a property with no facts file). The record still gets a safe, generic message at medium confidence, and RUN STATS lists these gaps under **Config gaps**. A no-send has `next_message: null` and `next_action: {"type": "suppress" | "human_review", "reason": ...}`.
+`next_message` and `next_action` follow the samples' `expected` shape. `meta.gaps` flags configuration gaps a downstream system can act on, such as `property_facts_missing` (a property with no facts file). The record still gets a safe, generic message at medium confidence, and RUN STATS lists these gaps under **Config gaps**. A no-send has `next_message` with `channel: "none"` and null fields, and `next_action: {"type": "no_op", "reason": "no_contact_consent" | "no_usable_channel" | "opted_out"}`, or `{"type": "human_review", "reason": ...}` when a person should look. The plain-English reason is in `meta.no_send_reason`.
 
 ## How it decides
 
@@ -76,7 +76,7 @@ These were inferred from two samples and stated rather than hidden. The details 
 - **Send time:** the rule above; 09:00/10:00 are per-channel settings in `config/rules.yaml`. Use `--now` to set a reference time.
 - **Property facts** (tour days, amenities, links) come from `config/properties.yaml`. For an unknown property the message makes no specific claims.
 - **Horizon threshold:** 50 days to move-in, learned from the samples (32 days → short, 68 days → long; the true cut-off lies in 32–67). The hand-written default is 45.
-- **No-send shape:** as above. The assignment doesn't define one.
+- **No-send shape:** as above. The assignment doesn't define one; the shape and `no_contact_consent` come from the hold-out's expected output, the other reason codes are ours.
 - **Languages:** every word the bot writes lives in `config/templates/<lang>.yaml` (English, Spanish, French; Arabic and Hindi drafts that need native review), including that language's STOP keywords, fair-housing terms and banned phrases. **Adding a language means adding a file; the validator checks it's complete.** Each property can declare `languages` and a `default_language` in `properties.yaml`. The recipient's language is used if the property offers it, otherwise the property's default. A template can set `direction: rtl` (Arabic: links, STOP and digits are wrapped in Unicode isolates so they display in order) and `sms_max_chars` (210 for non-Latin scripts, billed at 70 characters per segment). Every language keeps the English STOP keyword alongside its own.
 - **Brand style** isn't defined by the assignment. It's implemented as a per-property brand profile (`config/properties.yaml`, defaults in `config/rules.yaml`) plus a check on every message.
 - **Consent:** only an explicit opt-in counts; missing or unclear consent means no send.

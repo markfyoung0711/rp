@@ -21,7 +21,7 @@ from pathlib import Path
 from outreach import llm
 from outreach.llm import DEFAULT_MODEL
 from outreach import config, guards, pii
-from outreach.pipeline import pending_llm_call, process
+from outreach.pipeline import pending_llm_call, process, sent_message
 from outreach.reader import ReadError, UnsupportedInput, decode_bytes, read_batch
 from outreach.validate import RulesError
 
@@ -50,7 +50,7 @@ def compare(result: dict, expected: dict) -> list[tuple[str, str, str]]:
 
 def print_readable(results: list[dict], records: list, show_compare: bool) -> None:
     for res, rec in zip(results, records):
-        msg = res.get("next_message")
+        msg = sent_message(res)
         meta = res.get("meta", {})
         print("─" * 78)
         print(f"{res['task_id']}   [{meta.get('record_type', '?')}, confidence {meta.get('confidence', '?')}, "
@@ -97,15 +97,15 @@ def print_stats(results: list[dict], records: list, args, wall_s: float, input_n
     th = _thresholds(records)
     p95_target = th.get("p95_latency_ms", 2000)
     safety_max = th.get("safety_violations_max", 0)
-    sent = [r for r in results if r["next_message"]]
-    nosend = [r for r in results if not r["next_message"]]
+    sent = [r for r in results if sent_message(r)]
+    nosend = [r for r in results if not sent_message(r)]
     lat = [r["meta"]["latency_ms"] for r in results]
     unreadable = sum(1 for r in records if isinstance(r, ReadError))
     repaired = sum(1 for r in results if any(w.startswith(("repaired", "record was", "records unwrapped", "key "))
                                              for w in r["meta"].get("warnings", [])))
     warned = sum(1 for r in results if r["meta"].get("warnings"))
     channels = Counter(r["next_message"]["channel"] for r in sent)
-    reasons = Counter(re.sub(r" at line \d+", "", r["next_action"].get("reason", "?").split(":")[0]) for r in nosend)
+    reasons = Counter(re.sub(r" at line \d+", "", r["meta"].get("no_send_reason", "?").split(":")[0]) for r in nosend)
     actions = Counter(r["next_action"]["type"] for r in results)
     conf = Counter(r["meta"].get("confidence", "?") for r in results)
     wording = Counter()
