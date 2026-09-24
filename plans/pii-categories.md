@@ -28,3 +28,4 @@
 - **Model prompts (`--llm`):** only allow-listed fields (first name, property, interests, move timing, CTA type). A test checks that none of the planted data reaches the prompt.
 - **Wrong-number risk:** a reassigned number would still receive the greeting and the property name, which is inherent in the expected outputs. Messages carry no case details beyond that.
 - **Storage:** the bot keeps no logs of records. Output files contain only the fields above. The `--llm` cache stores only model answers, keyed by a hash.
+- **Identity boundary (D-048):** the bot echoes only the caller's `task_id` as its join key. Identifying the parties and resolving contact details belong to the system of record, which uses opaque internal IDs.
