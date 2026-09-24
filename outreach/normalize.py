@@ -15,7 +15,7 @@ from . import config
 
 KNOWN_TOP = {"task_id", "persona", "lifecycle_stage", "consent", "channel_preferences", "input",
              "assertions", "thresholds", "expected", "_ingest"}
-KNOWN_INPUT = {"property_name", "follow_up_days", "move_date_target", "last_interaction", "timezone", "language", "profile",
+KNOWN_INPUT = {"property_name", "follow_up_days", "unit", "move_date_target", "last_interaction", "timezone", "language", "profile",
                "last_message", "inbound_message", "reply", "last_reply", "last_inbound"}
 TRUE_WORDS = {"true", "yes", "y", "1", "opted_in", "opt_in", "granted", "allowed", "on"}
 TZ_ALIASES = {"cst": "America/Chicago", "cdt": "America/Chicago", "central": "America/Chicago",
@@ -46,6 +46,7 @@ class Case:
     primary_cta: str | None
     include_opt_out: bool
     expected: dict | None
+    unit: str | None = None               # the resident's own unit (used only in renewal links and wording)
     follow_up_days: int | None = None     # set in the input payload (input.follow_up_days or property.follow_up_days)
     required_states: list = field(default_factory=list)
     warnings: list = field(default_factory=list)
@@ -259,9 +260,14 @@ def normalize(rec: dict) -> Case:
     if isinstance(primary_cta, dict):
         primary_cta = primary_cta.get("type")
     if not primary_cta:
+        by_stage = config.rules().get("default_cta_by_stage") or {}
         by_persona = config.rules()["default_cta_by_persona"]
-        primary_cta = by_persona.get(persona, by_persona["default"])
-        warnings.append(f"primary_cta missing; used {primary_cta!r} for persona {persona!r}")
+        if stage in by_stage:
+            primary_cta = by_stage[stage]
+            warnings.append(f"primary_cta missing; used {primary_cta!r} for stage {stage!r}")
+        else:
+            primary_cta = by_persona.get(persona, by_persona["default"])
+            warnings.append(f"primary_cta missing; used {primary_cta!r} for persona {persona!r}")
 
     first = profile.get("first_name") or get("first_name", "firstname", "given_name")
     if not first:
@@ -289,6 +295,7 @@ def normalize(rec: dict) -> Case:
         language=str(get("language", "lang", "locale") or "en").strip().lower()[:2],
         profile=merged_profile,
         primary_cta=str(primary_cta) if primary_cta else None,
+        unit=str(inp["unit"]).strip() if isinstance(inp.get("unit"), (str, int)) and str(inp["unit"]).strip() else None,
         follow_up_days=follow_up,
         include_opt_out=bool(constraints.get("include_opt_out_instructions", True)),
         expected=rec.get("expected") if isinstance(rec.get("expected"), dict) else None,

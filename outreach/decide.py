@@ -95,6 +95,11 @@ def send_time(case: Case, channel: str, now: datetime | None, why: list) -> date
 
 def next_action(case: Case, purpose: str, send_at: datetime | None, why: list) -> dict:
     rules = config.rules()["next_action"]
+    play = (rules.get("by_stage") or {}).get(case.stage)
+    if play:
+        action = {k: v.format(persona=case.persona) if isinstance(v, str) else v for k, v in play.items()}
+        why.append(f"next action: stage {case.stage!r} playbook -> {action['type']}")
+        return action
     if case.stage in rules["new_stages"]:
         threshold = rules.get("horizon_threshold_days")
         if case.move_date and send_at and threshold is not None:
@@ -102,8 +107,8 @@ def next_action(case: Case, purpose: str, send_at: datetime | None, why: list) -
             horizon = "short" if days <= threshold else "long"
             basis = f"{days} days to move-in (threshold {threshold})"
         else:
-            horizon = "short"
-            basis = "no move date or no learned threshold; defaulted to short"
+            horizon = rules.get("horizon_when_unknown", "short")
+            basis = f"no move date or no learned threshold; defaulted to {horizon}"
         topic = "welcome" if purpose == "tour" else purpose
         name = f"{case.persona}_{topic}_{horizon}_horizon"
         why.append(f"next action: new lead -> start cadence {name} ({basis})")

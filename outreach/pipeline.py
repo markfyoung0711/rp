@@ -58,11 +58,18 @@ def _final_confidence(initial: str, case: Case) -> str:
 REQUIRED_STATES = ("consent_verified", "fair_housing_check_passed", "brand_style_applied")
 
 
-def _required_states(case: Case, consent: bool, fair: bool, brand: bool) -> dict:
+def _required_states(case: Case, consent: bool, fair: bool, brand: bool, offer: bool = False) -> dict:
     """The samples' `assertions.required_states`, each marked as verified (True) or not."""
     wanted = case.required_states or list(REQUIRED_STATES)
-    values = {"consent_verified": consent, "fair_housing_check_passed": fair, "brand_style_applied": brand}
+    values = {"consent_verified": consent, "fair_housing_check_passed": fair, "brand_style_applied": brand,
+              "renewal_offer_loaded": offer}
     return {s: values.get(s, False) for s in wanted}
+
+
+def _offer_located(case: Case, purpose: str, facts: dict | None) -> bool:
+    """renewal_offer_loaded: a renewal message for a known unit at a property with a renewal link. There's no offer
+    data (price, terms) in the input, so this means the resident's offer page was located, not its contents read."""
+    return purpose.startswith("renewal") and compose.unit_slug(case.unit) is not None and bool((facts or {}).get("renewal_link"))
 
 
 def _no_channel_reason(case: Case) -> str:
@@ -171,7 +178,8 @@ async def _process(item, use_llm: bool, model: str, now: datetime | None) -> dic
         "next_action": decide.next_action(case, purpose, send_at, why),
         "why": why,
         "meta": {**base_meta, "confidence": _final_confidence(base_meta["confidence"], case),
-                 "required_states": _required_states(case, True, True, True), "warnings": case.warnings,
+                 "required_states": _required_states(case, True, True, True, offer=_offer_located(case, purpose, facts)),
+                 **({"used_on_purpose": ["unit"]} if draft.used_unit else {}), "warnings": case.warnings,
                  **({"gaps": case.gaps} if case.gaps else {})},
     }
 

@@ -542,3 +542,23 @@ def test_follow_up_days_from_input_else_default():
     rec["input"]["follow_up_days"] = "soon"
     out = run(json.dumps(rec))[0]
     assert out["next_action"]["value"] == 2 and any("follow_up_days" in w for w in out["meta"]["warnings"])
+
+
+def test_stage_playbook_renewal_links_and_reply_options():
+    base = {"task_id": "r1", "persona": "resident", "lifecycle_stage": "renewal_details_requested",
+            "consent": {"email_opt_in": True, "sms_opt_in": True, "voice_opt_in": False}, "channel_preferences": ["email"],
+            "input": {"property_name": "Oak Ridge Apartments", "unit": "A‑204", "language": "en",
+                      "profile": {"first_name": "Jordan"}}}
+    out = run(json.dumps(base))[0]
+    assert out["next_message"]["cta"] == {"type": "review_renewal_details",
+                                          "link": "https://oakridge.example/renewal/A-204/details"}   # ASCII hyphen
+    assert out["next_action"] == {"type": "start_esign_flow"}
+    assert out["meta"]["required_states"].get("renewal_offer_loaded", True) and out["meta"]["used_on_purpose"] == ["unit"]
+    no_unit = json.loads(json.dumps(base))
+    del no_unit["input"]["unit"]
+    out = run(json.dumps(no_unit))[0]
+    assert "link" not in out["next_message"]["cta"] and "{unit}" not in out["next_message"]["body"]
+    undecided = dict(base, lifecycle_stage="renewal_undecided", channel_preferences=["sms"])
+    out = run(json.dumps(undecided))[0]
+    assert out["next_message"]["cta"]["options"] == ["yes", "no", "details"]                     # not YAML booleans
+    assert out["next_action"]["mapping"]["yes"] == "start_esign_flow"

@@ -121,13 +121,18 @@ def find(record: dict) -> tuple[dict[str, list[str]], int]:
 
 
 def audit(record: dict, output: dict) -> dict:
-    """Counts only: what personal data the input had, and whether any of it reached the output."""
+    """Counts only: what personal data the input had, and whether any of it reached the output.
+    A value the bot used on purpose (meta.used_on_purpose, e.g. a resident's own unit) is neither."""
     found, protected = find(record)
+    inp = record.get("input") if isinstance(record.get("input"), dict) else {}
+    used = {str(inp.get(k)) for k in (output.get("meta") or {}).get("used_on_purpose", []) if inp.get(k) is not None}
     out_text = json.dumps({k: v for k, v in output.items() if k != "task_id"}, ensure_ascii=False).lower()
     withheld: dict[str, int] = {}
     leaked: dict[str, int] = {}
     for cat, values in found.items():
         for v in dict.fromkeys(values):                      # unique values per category
+            if v in used:
+                continue
             # Short values ("12", "yes") can occur by coincidence; judge leaks on distinctive values only.
             is_leak = len(v) >= 5 and v.lower() in out_text
             target = leaked if is_leak else withheld

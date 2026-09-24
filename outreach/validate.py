@@ -8,6 +8,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 KNOWN_CHANNELS = {"sms", "email", "voice"}
 KNOWN_PURPOSES = {"tour", "apply", "sign_lease", "payment", "renewal", "maintenance", "general"}
+# Stage-playbook purposes: optional per language (a language without the wording uses its general line).
+PLAYBOOK_PURPOSES = {"reschedule", "renewal_offer", "renewal_details", "renewal_intent", "resident_welcome", "loyalty"}
 DAYS = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
 LEGAL_EARLIEST, LEGAL_LATEST = 8, 21       # federal TCPA calling window, 8 a.m.-9 p.m. local; may be narrowed, never widened
 IDENT = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
@@ -99,10 +101,19 @@ def validate_rules(r: dict) -> list[str]:
             p.append(f"cta.{name}: name must be a lowercase identifier")
         if not IDENT.match(str(row.get("type", ""))):
             p.append(f"cta.{name}.type: {row.get('type')!r} must be a lowercase identifier")
-        if row.get("purpose") not in KNOWN_PURPOSES:
-            p.append(f"cta.{name}.purpose: {row.get('purpose')!r} must be one of {sorted(KNOWN_PURPOSES)}")
+        if row.get("purpose") not in KNOWN_PURPOSES | PLAYBOOK_PURPOSES:
+            p.append(f"cta.{name}.purpose: {row.get('purpose')!r} must be one of {sorted(KNOWN_PURPOSES | PLAYBOOK_PURPOSES)}")
+        opts = row.get("options")
+        if opts is not None and not (isinstance(opts, list) and opts and all(isinstance(o, str) and IDENT.match(o) for o in opts)):
+            p.append(f"cta.{name}.options: must be a list of lowercase identifiers (quote yes/no in YAML)")
         if not isinstance(row.get("link_key"), str):
             p.append(f"cta.{name}.link_key: must be text")
+    for stage, target in (r.get("default_cta_by_stage") or {}).items():
+        if target not in cta:
+            p.append(f"default_cta_by_stage.{stage}: {target!r} is not a row in cta")
+    for stage, act in ((r.get("next_action") or {}).get("by_stage") or {}).items():
+        if not (isinstance(act, dict) and IDENT.match(str(act.get("type", "")))):
+            p.append(f"next_action.by_stage.{stage}: must be a mapping with a lowercase identifier 'type'")
     for persona, target in (r.get("default_cta_by_persona") or {}).items():
         if target not in cta:
             p.append(f"default_cta_by_persona.{persona}: {target!r} is not a row in cta")
@@ -156,7 +167,7 @@ TEMPLATE_KEYS = {
              "email_nolink"],
     "general": ["sms_core", "sms_details", "email_core", "email_action", "voice_core", "voice_tail", "lines", "subjects"],
 }
-PLACEHOLDERS = dict(name="N", prop="P", greeting="G", when="W", days="D", n=1, code="C", short="S", codes="X",
+PLACEHOLDERS = dict(unit="U", label="L", name="N", prop="P", greeting="G", when="W", days="D", n=1, code="C", short="S", codes="X",
                     opt_out="O", intro="I", day="Y", keys="K", labels="L", article="a", move="M", first="F",
                     closer="Z", link="https://x", line="l", Line="L", month="m")
 

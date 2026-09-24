@@ -63,6 +63,12 @@ general:
     renewal: "we'd love to have you stay at {prop}. Your renewal options are ready to review."
     maintenance: "we can help schedule your maintenance request at {prop}."
     general: "we wanted to follow up about {prop}. How can we help?"
+    reschedule: "sorry we missed you. Want to reschedule your {prop} tour?"
+    renewal_offer: "it’s time to review renewal options for your home ({unit})."
+    renewal_details: "here are your renewal details for {unit}, including term options and monthly pricing. Ready to continue?"
+    renewal_intent: "quick reminder: would you like to renew {unit}?"
+    resident_welcome: "welcome to {prop}! Before move‑in, take a minute to get set up."
+    loyalty: "you can join {prop} Rewards in about a minute and start earning."
   subjects:
     apply: "Your application for {prop}"
     sign_lease: "Your {prop} lease is ready to sign"
@@ -70,6 +76,22 @@ general:
     renewal: "Your renewal options at {prop}"
     maintenance: "Your maintenance request at {prop}"
     general: "Following up from {prop}"
+    reschedule: "Reschedule your {prop} tour"
+    renewal_offer: "{name}, your renewal options at {prop}"
+    renewal_details: "Your renewal details for {unit}"
+    renewal_intent: "Would you like to renew at {prop}?"
+    resident_welcome: "Welcome to {prop}—get set up before move‑in"
+    loyalty: "Earn rewards at {prop}—join loyalty"
+  actions:                   # link label per purpose in email (default: email_action)
+    renewal_offer: "Review your offer → {link}"
+    renewal_details: "View details → {link}"
+    resident_welcome: "Get started → {link}"
+    loyalty: "Enroll → {link}"
+  option_code: "{n} for {label}"       # reply codes for fixed options; per purpose in option_codes
+  option_codes:
+    renewal_intent: "{n} {label}"
+  option_labels: {today: today, tomorrow: tomorrow, "yes": "Yes", "no": "No", details: "Need more details"}
+  options_tail: "Reply {codes}. {opt_out}"
 
 # Compliance words in this language are added to the lists in rules.yaml (English ones live there).
 stop_keywords: []

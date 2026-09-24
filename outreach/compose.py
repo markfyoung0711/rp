@@ -59,6 +59,15 @@ class Draft:
     facts_used: bool
     tour_days: list | None = None   # full day names offered, in order (for the model prompt)
     lang: str = "en"                # the language actually used
+    used_unit: bool = False         # the resident's unit appears in the message (on purpose)
+
+
+def unit_slug(unit: str | None) -> str | None:
+    """A unit made safe for a link: any dash character becomes '-'; None unless only letters, digits and '-'."""
+    if not unit:
+        return None
+    slug = re.sub(r"[\u2010-\u2015\u2212\s]", "-", unit.strip())
+    return slug if re.fullmatch(r"[A-Za-z0-9-]{1,20}", slug) else None
 
 
 def display_name(full: str) -> str:
@@ -133,25 +142,47 @@ def draft(case: Case, channel: str, send_at: datetime, why: list) -> Draft:
         return d
 
     g = t["general"]
-    line = g["lines"][purpose].format(prop=prop)
+    # A language without wording for this purpose, or a purpose that needs a unit the record lacks, uses the general line.
+    key = purpose if purpose in g["lines"] else "general"
+    if "{unit}" in g["lines"][key] + g["subjects"].get(key, "") and not case.unit:
+        key = "general"
+    if link and "{unit}" in link:
+        slug = unit_slug(case.unit)
+        link = link.replace("{unit}", slug) if slug else None
+        if not slug:
+            why.append("link needs the unit, which is missing or not link-safe; no link")
+    fill = {"prop": prop, "name": name, "unit": case.unit or ""}
+    line = g["lines"][key].format(**fill)
     Line = line[0].upper() + line[1:]
     cta = {"type": rule["type"]}
+    used_unit = bool(case.unit) and (case.unit in line + g["subjects"].get(key, "") or bool(link and unit_slug(case.unit) in link))
     if channel == "voice":
         # A call can't carry a link: offer to connect the caller to the team instead.
         core = g["voice_core"].format(name=name, intro=voice_intro(facts, prop, lang), Line=Line)
         tail = g["voice_tail"].format(opt_out=oo)
         cta["options"] = ["1"]
         return Draft(None, core, tail, cta, bool(facts), lang=lang)
+    subject = g["subjects"][key].format(**fill) if channel == "email" else None
+    options = rule.get("options")
+    if options and "options_tail" in g:
+        # Fixed reply choices (e.g. today / tomorrow, yes / no / details) instead of a link.
+        labels = g.get("option_labels") or {}
+        fmt = (g.get("option_codes") or {}).get(key, g.get("option_code", "{n} for {label}"))
+        codes = ", ".join(fmt.format(n=i + 1, label=labels.get(o, o)) for i, o in enumerate(options))
+        cta["options"] = list(options)
+        core = g["sms_core"].format(name=name, line=line) if channel == "sms" else g["email_core"].format(name=name, Line=Line)
+        return Draft(subject, core, g["options_tail"].format(codes=codes, opt_out=oo), cta, bool(facts), lang=lang,
+                     used_unit=used_unit and case.unit in line + (subject or ""))
     if link:
         cta["link"] = link
     if channel == "sms":
         core = g["sms_core"].format(name=name, line=line)
         tail = ((g["sms_details"].format(link=link) + " ") if link else "") + oo
-        return Draft(None, core, tail.strip(), cta, bool(facts), lang=lang)
-    subject = g["subjects"][purpose].format(prop=prop)
+        return Draft(None, core, tail.strip(), cta, bool(facts), lang=lang, used_unit=used_unit)
     core = g["email_core"].format(name=name, Line=Line)
-    tail = ((g["email_action"].format(link=link) + "\n") if link else "") + oo
-    return Draft(subject, core, tail, cta, bool(facts), lang=lang)
+    action = (g.get("actions") or {}).get(key, g["email_action"])
+    tail = ((action.format(link=link) + "\n") if link else "") + oo
+    return Draft(subject, core, tail, cta, bool(facts), lang=lang, used_unit=used_unit)
 
 
 def voice_intro(facts: dict | None, prop: str, lang: str) -> str:

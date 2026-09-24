@@ -12,6 +12,10 @@ Oak Ridge Apartments:
   apply_link: https://oakridge.example/apply
   portal_link: https://oakridge.example/portal
   contact_link: https://oakridge.example/contact
+  welcome_link: https://oakridge.example/welcome
+  loyalty_link: https://oakridge.example/loyalty
+  renewal_link: https://oakridge.example/renewal/{unit}              # {unit}: the resident's unit
+  renewal_details_link: https://oakridge.example/renewal/{unit}/details
   amenities:                     # key: [label in subject, label in body]
     pool: [pool, pool]
     fitness: [fitness rooms, 24/7 fitness center]

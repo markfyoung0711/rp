@@ -23,24 +23,40 @@ send_time:
 next_action:
   new_stages: [new]                # these start a cadence; everyone else gets a follow-up
   horizon_threshold_days: 45       # days from send date to move date: <= short, > long
+  horizon_when_unknown: long       # no move date: not urgent (hold-out prospect_consent_block_sms_fallback_email)
   follow_up_days: 3
   follow_up_days_without_dayN: 2   # when the task_id has no dayN; the input's follow_up_days or the property's setting wins
   follow_up_days_by_stage:         # per record type (lifecycle_stage), from the hold-out; checked before dayN
     welcome: 2
     cancelled_manager: 2
     loyalty_engage: 5
+  by_stage:                        # stage playbook: these stages get this action instead of a follow-up (from the hold-out)
+    no_show: {type: reset_cadence, name: "{persona}_reengage"}
+    renewal_window: {type: schedule_sms_reminder, in_days: 5}
+    renewal_undecided:
+      type: branch_on_intent
+      mapping: {"yes": start_esign_flow, "no": exit_nurture, "details": send_offer_details_email}
+    renewal_details_requested: {type: start_esign_flow}
 
 stop_keywords: [STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT, OPTOUT, "OPT OUT", REVOKE]
 # Each language's own STOP keywords, protected terms and banned phrases live in config/templates/<lang>.yaml
 # and are added to these lists when the rules load.
 
-# Used when a record has no primary_cta.
+# Used when a record has no primary_cta: the stage's entry first, then the persona's.
+default_cta_by_stage:
+  no_show: reschedule_tour
+  renewal_window: review_renewal
+  renewal_undecided: reply_intent
+  renewal_details_requested: review_renewal_details
+  welcome: get_started
+  loyalty_engage: enroll_loyalty
 default_cta_by_persona:
   prospect: book_tour
   applicant: apply_now
   default: general
 
-# primary_cta -> output cta.type, purpose and the facts key holding its link.
+# primary_cta -> output cta.type, purpose and the facts key holding its link. A link may contain {unit} (the
+# record's unit, made URL-safe); without a unit there is no link. `options` are fixed reply choices instead of a link.
 cta:
   book_tour:            {type: schedule_tour,        purpose: tour,        link_key: tour_link}
   schedule_tour:        {type: schedule_tour,        purpose: tour,        link_key: tour_link}
@@ -52,6 +68,12 @@ cta:
   pay_rent:             {type: pay_rent,             purpose: payment,     link_key: portal_link}
   renew_lease:          {type: renew_lease,          purpose: renewal,     link_key: portal_link}
   schedule_maintenance: {type: schedule_maintenance, purpose: maintenance, link_key: portal_link}
+  reschedule_tour:      {type: reschedule,           purpose: reschedule,  link_key: tour_link, options: [today, tomorrow]}
+  review_renewal:       {type: review_renewal,       purpose: renewal_offer, link_key: renewal_link}
+  review_renewal_details: {type: review_renewal_details, purpose: renewal_details, link_key: renewal_details_link}
+  reply_intent:         {type: intent_capture,       purpose: renewal_intent, link_key: renewal_link, options: ["yes", "no", "details"]}
+  get_started:          {type: get_started,          purpose: resident_welcome, link_key: welcome_link}
+  enroll_loyalty:       {type: enroll_loyalty,       purpose: loyalty,     link_key: loyalty_link}
   general:              {type: contact_us,           purpose: general,     link_key: contact_link}
   default:              {type: contact_us,           purpose: general,     link_key: contact_link}
 
