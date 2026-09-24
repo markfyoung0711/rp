@@ -117,3 +117,6 @@ If the bot decides not to send, `next_message` is `null` and `next_action` says 
 | `meta.mode` | `template` or `llm`: who wrote the wording |
 | `meta.required_states` | The three required checks, each `true` when verified |
 | `meta.warnings` | Anything repaired, assumed or ignored in the input |
+
+**For the hold-out hand-over,** `--answer-only` leaves out `why` and `meta`. Each line is then exactly the samples' `expected` shape: `task_id`, `next_message`, `next_action`. The reasons still show on screen.
+
