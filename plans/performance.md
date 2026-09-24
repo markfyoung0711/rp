@@ -24,3 +24,17 @@ Input: `tests/perf_100.jsonl`, 100 varied synthetic records from `scripts/gen_re
 - **Template mode meets the target by three orders of magnitude.** Use it for the graded hold-out run.
 - `--llm` is limited by the model's response time (~1.2–2 s per call) and by how many calls run at once. The concurrency is now 64 (`BOT_LLM_CONCURRENCY`). At the hold-out size of 12 it sits right at the 2 s target, so present it as the optional "learns the wording from the samples" mode, not the graded run.
 - At scale, throughput is governed by the API rate limit, not by the bot. Records are independent, so a queue plus workers scales out.
+
+## 100K records
+
+**Template mode, measured:** 100,000 generated records (55 MB) processed in **52 s** (~0.5 ms per record), with **~1.2 GB peak memory**, because the whole batch is held in memory. $0 in API cost. Streaming the file in chunks would cut the memory; not needed at hold-out size.
+
+**`--llm` mode, estimated** from measured token counts (`count_tokens`: ~1,670 input tokens per call; ~100 output tokens). Only records that will be sent need a call; that was ~78% in the generated mix.
+
+| Model / API | Calls | Input cost | Output cost | Total |
+|---|---|---|---|---|
+| Haiku 4.5, real time ($1 / $5 per M tokens) | ~78,000 | ~$130 | ~$39 | **~$170** (all 100K: ~$220) |
+| Haiku 4.5, Batch API (50% off, results within 24 h) | ~78,000 | ~$65 | ~$20 | **~$85** |
+| Sonnet 5, real time ($2 / $10) | ~78,000 | ~$260 | ~$78 | **~$340** |
+
+Time for `--llm` at 100K is set by the account's rate limit, not the bot: at 64 parallel calls of ~1.5 s each, about 40 calls/s, so **~30 min**, if the tier allows ~2,500 requests per minute. A lower tier would need throttling or the Batch API. Prompt caching wouldn't help much: the shared prefix (~1,500 tokens) is below Haiku's minimum cacheable length.
