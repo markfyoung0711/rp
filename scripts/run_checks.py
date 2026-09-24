@@ -95,6 +95,11 @@ def main(full: bool) -> int:
     check("P0", "no trailing newline", len(read_records(SAMPLES.read_text().rstrip("\n"))) == 2)
     mixed = run(read_records(one + "\n{broken\n" + one))
     check("P0", "malformed record isolated", [bool(m["next_message"]) for m in mixed] == [True, False, True])
+    garbage = sh("uv", "run", "bot.py", "-i", str(ROOT / "tests" / "garbage_inputs.txt"), "--quiet")
+    sent = sum(1 for line in garbage.stdout.splitlines() if line.startswith("{") and '"next_message": {' in line)
+    check("P0", "garbage input: 13 of 14 records recovered, exit 0", garbage.returncode == 0 and sent == 13, f"sent {sent}")
+    utf16 = sh("uv", "run", "bot.py", "-i", str(ROOT / "tests" / "garbage_utf16.jsonl"), "--quiet")
+    check("P0", "UTF-16 input file", utf16.returncode == 0 and utf16.stdout.count('"next_message": {') == 2)
     edge_out = sh("uv", "run", "bot.py", "-i", str(EDGES), "--quiet")
     check("P0", "edge cases run, exit 0", edge_out.returncode == 0, edge_out.stderr[-200:])
 

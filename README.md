@@ -16,7 +16,7 @@ uv run pytest                                              # tests
 uv run python scripts/run_checks.py --full                 # the code-review checklist, automated (24 checks)
 ```
 
-Input can be JSONL, a JSON array, or pretty-printed objects. The screen shows each decision with its reasons, then the whole batch between `=== BEGIN OUTPUT ===` and `=== END OUTPUT ===` for copy-paste. Add `--llm` to have Claude (Haiku 4.5) write the wording; it needs `ANTHROPIC_API_KEY` and falls back to the templates if the API is unavailable.
+Input can be JSONL, a JSON array, a wrapper object, or pretty-printed objects, in UTF-8 or UTF-16. The reader tolerates pasted garbage (prose, numbering, code fences, comments, smart quotes, trailing commas, Python-style dicts, double-encoded JSON, key variants such as `Task_ID`). It repairs what it can, notes each repair in the record's warnings, and turns anything unreadable into a no-send with a reason; see `tests/garbage_inputs.txt`. The screen shows each decision with its reasons, then the whole batch between `=== BEGIN OUTPUT ===` and `=== END OUTPUT ===` for copy-paste. Add `--llm` to have Claude (Haiku 4.5) write the wording; it needs `ANTHROPIC_API_KEY` and falls back to the templates if the API is unavailable.
 
 ## Output (one line per record)
 

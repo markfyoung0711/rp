@@ -1,11 +1,26 @@
-"""Reads records from JSONL, a JSON array, or concatenated / pretty-printed JSON objects.
+"""Garbage-tolerant record reader.
 
-A malformed record never stops the batch: it becomes a ReadError that the pipeline turns into
-a safe no-send with a reason.
+Accepts JSONL, a JSON array, a wrapper object ({"records": [...]}), or concatenated / pretty-printed
+objects, and survives what people actually paste:
+  - byte-level: UTF-8 with or without BOM, UTF-16 (Windows exports), invalid bytes, CRLF
+  - text-level: markdown code fences, comment lines (# or //), prose or numbering between records,
+    zero-width characters
+  - record-level repairs: smart quotes, trailing commas, non-breaking spaces, Python-style dicts
+    (single quotes, True/False/None), double-encoded JSON strings, arrays of records on one line
+A record that still can't be read becomes a ReadError (a safe no-send with a reason); it never
+stops the batch. Every repair is noted on the record (`_ingest`) so the output says what was fixed.
 """
+import ast
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+ZERO_WIDTH = dict.fromkeys(map(ord, "​‌‍⁠﻿"), None)
+FENCE = re.compile(r"^[ \t]*```[^\n]*$", re.M)
+COMMENT = re.compile(r"^[ \t]*(#|//)[^\n]*$", re.M)
+WRAPPER_KEYS = {"records", "data", "items", "cases", "rows", "holdout", "tasks", "results", "inputs"}
+RECORD_HINT_KEYS = {"task_id", "consent", "channel_preferences", "input", "persona", "lifecycle_stage"}
+MAX_SNIPPET = 200
 
 
 @dataclass
@@ -16,43 +31,228 @@ class ReadError:
 
     @property
     def task_id(self) -> str:
-        m = re.search(r'"task_id"\s*:\s*"([^"]+)"', self.snippet)
+        m = re.search(r"""["'“”]task_id["'“”]\s*:\s*["'“”]([^"'“”]+)""", self.snippet)
         return m.group(1) if m else f"unreadable_line_{self.line}"
 
 
-def read_records(text: str) -> list[dict | ReadError]:
-    text = text.lstrip("﻿")
-    stripped = text.strip()
-    if not stripped:
-        return []
+@dataclass
+class Batch:
+    records: list = field(default_factory=list)
+    notes: list = field(default_factory=list)      # batch-level notes (ignored text, decoding, ...)
 
-    # A single JSON document: an array of records, or one object.
+
+def decode_bytes(data: bytes) -> tuple[str, list[str]]:
+    """Bytes to text, whatever the encoding. Never raises."""
+    notes: list[str] = []
+    if data.startswith((b"\xff\xfe", b"\xfe\xff")):
+        notes.append("input was UTF-16; decoded")
+        return data.decode("utf-16", errors="replace"), notes
+    if data[:200].count(b"\x00") > 20:              # UTF-16 without a BOM
+        notes.append("input looked like UTF-16 without a BOM; decoded")
+        return data.decode("utf-16-le", errors="replace"), notes
     try:
-        doc = json.loads(stripped)
-        items = doc if isinstance(doc, list) else [doc]
-        return [i if isinstance(i, dict) else ReadError(1, "record is not a JSON object", str(i)[:200]) for i in items]
-    except json.JSONDecodeError:
+        return data.decode("utf-8-sig"), notes
+    except UnicodeDecodeError:
+        try:
+            text = data.decode("cp1252")
+            notes.append("input was not UTF-8; decoded as Windows-1252")
+            return text, notes
+        except UnicodeDecodeError:
+            notes.append("input had invalid bytes; replaced with �")
+            return data.decode("utf-8", errors="replace"), notes
+
+
+def _looks_like_record(d: dict) -> bool:
+    return bool(RECORD_HINT_KEYS & {str(k).lower() for k in d})
+
+
+def _expand(obj, line: int, snippet: str, notes: list[str]) -> list:
+    """A parsed value to a list of records: unwrap arrays, wrapper objects and JSON-in-a-string."""
+    if isinstance(obj, str):
+        s = obj.strip()
+        if s[:1] in "{[":
+            try:
+                inner = json.loads(s)
+                return _expand(inner, line, snippet, notes + ["record was a JSON string containing JSON; decoded"])
+            except (json.JSONDecodeError, RecursionError):
+                pass
+        return [ReadError(line, "record is a string, not a JSON object", snippet)]
+    if isinstance(obj, list):
+        out: list = []
+        for item in obj:
+            out.extend(_expand(item, line, json.dumps(item, ensure_ascii=False, default=str)[:MAX_SNIPPET], notes))
+        return out
+    if isinstance(obj, dict):
+        if not _looks_like_record(obj):
+            lists = [(k, v) for k, v in obj.items() if isinstance(v, list) and v and all(isinstance(x, dict) for x in v)]
+            if len(lists) == 1 and lists[0][0].lower() in WRAPPER_KEYS:
+                return _expand(lists[0][1], line, snippet, notes + [f"records unwrapped from '{lists[0][0]}'"])
+        rec = dict(obj)
+        if notes:
+            rec["_ingest"] = list(dict.fromkeys(notes))
+        return [rec]
+    return [ReadError(line, f"record is a {type(obj).__name__}, not a JSON object", snippet)]
+
+
+def _balanced_end(text: str, start: int) -> int | None:
+    """Index just past the bracket that closes text[start], respecting quoted strings; None if unclosed."""
+    pairs = {"{": "}", "[": "]"}
+    closers = {'"': '"”', "'": "'", "“": '”"'}      # tolerate mixed straight/curly quotes
+    stack: list[str] = []
+    quote: str | None = None      # the characters that may close the open string
+    i, n = start, len(text)
+    while i < n:
+        c = text[i]
+        if quote:
+            if c == "\\":
+                i += 2
+                continue
+            if c in quote:
+                quote = None
+        elif c in closers:
+            quote = closers[c]
+        elif c in pairs:
+            stack.append(pairs[c])
+        elif c in "}]":
+            if not stack or c != stack[-1]:
+                return None
+            stack.pop()
+            if not stack:
+                return i + 1
+        i += 1
+    return None
+
+
+def _repair(seg: str) -> tuple[object, list[str]] | None:
+    """Try progressively looser fixes on one record's text. Returns (value, notes) or None."""
+    attempts: list[tuple[str, str]] = []
+    s = seg
+    if " " in s:
+        s = s.replace(" ", " ")
+        attempts.append(("non-breaking spaces", s))
+    if re.search(r"[“”]", s):
+        s = s.replace("“", '"').replace("”", '"')
+        attempts.append(("smart quotes", s))
+    t = re.sub(r",\s*([}\]])", r"\1", s)
+    if t != s:
+        s = t
+        attempts.append(("trailing commas", s))
+    t = re.sub(r"\n", " ", s)
+    if t != s:
+        attempts.append(("line breaks inside strings", t))
+    notes: list[str] = []
+    for label, candidate in attempts:
+        notes.append(label)
+        try:
+            return json.loads(candidate), [f"repaired: {', '.join(notes)}"]
+        except (json.JSONDecodeError, RecursionError):
+            continue
+    # Python-style dict: single quotes, True/False/None. literal_eval evaluates literals only.
+    try:
+        py = re.sub(r"\bnull\b", "None", re.sub(r"\btrue\b", "True", re.sub(r"\bfalse\b", "False", s)))
+        value = ast.literal_eval(py)
+        if isinstance(value, (dict, list)):
+            return value, ["repaired: Python-style record (single quotes / True / None)"]
+    except (ValueError, SyntaxError, TypeError, MemoryError, RecursionError):
+        pass
+    return None
+
+
+def read_batch(text: str) -> Batch:
+    batch = Batch()
+    text = text.translate(ZERO_WIDTH).replace("\r\n", "\n").replace("\r", "\n")
+    if FENCE.search(text):
+        text = FENCE.sub("", text)
+        batch.notes.append("removed markdown code fences")
+    if COMMENT.search(text):
+        text = COMMENT.sub("", text)
+        batch.notes.append("ignored comment lines")
+    if not text.strip():
+        return batch
+
+    # Fast path: the whole input is one JSON document.
+    try:
+        doc = json.loads(text)
+        batch.records = _expand(doc, 1, text.strip()[:MAX_SNIPPET], [])
+        return batch
+    except (json.JSONDecodeError, RecursionError):
         pass
 
-    # Otherwise scan object by object; on a bad object, skip to the next line and keep going.
     decoder = json.JSONDecoder()
-    out: list[dict | ReadError] = []
     pos, n = 0, len(text)
+    ignored: list[str] = []
+    counted_to, line_no = 0, 1        # incremental line counting keeps big files linear
     while pos < n:
-        while pos < n and text[pos] in " \t\r\n,":
+        while pos < n and text[pos] in " \t\n,]":
             pos += 1
         if pos >= n:
             break
-        line = text.count("\n", 0, pos) + 1
+        line_no += text.count("\n", counted_to, pos)
+        counted_to = pos
+        line = line_no
+        c = text[pos]
+
+        if c not in "{[\"":
+            # Prose, numbering ("1."), CSV, or other junk: skip to the next place a record could start.
+            m = re.compile(r"[{\[]").search(text, pos)
+            end = n if m is None else m.start()
+            junk = text[pos:end].strip()
+            if junk:
+                ignored.append(f"line {line}: {junk[:60]!r}")
+            pos = end
+            continue
+
         try:
             obj, end = decoder.raw_decode(text, pos)
-            out.append(obj if isinstance(obj, dict) else ReadError(line, "record is not a JSON object", text[pos:end][:200]))
+            if isinstance(obj, str) and obj.strip()[:1] not in ("{", "["):
+                ignored.append(f"line {line}: {obj[:60]!r}")      # a quoted line of prose
+            else:
+                batch.records.extend(_expand(obj, line, text[pos:end][:MAX_SNIPPET], []))
             pos = end
-        except json.JSONDecodeError as e:
-            # Resume at the next line that starts a new object, so one broken multi-line
-            # record doesn't turn into a cascade of errors.
-            nxt = re.compile(r"\n[ \t]*\{").search(text, pos + 1)
-            end = n if nxt is None else nxt.start()
-            out.append(ReadError(line, f"invalid JSON: {e.msg}", text[pos:end][:200]))
+            continue
+        except (json.JSONDecodeError, RecursionError) as e:
+            err = getattr(e, "msg", type(e).__name__)
+
+        # JSONL: the record is probably this whole line. Try repairing just the line first.
+        nl = text.find("\n", pos)
+        line_end = n if nl == -1 else nl
+        line_text = text[pos:line_end].rstrip().rstrip(",")
+        if line_text.endswith(("}", "]")):
+            fixed = _repair(line_text)
+            if fixed is not None:
+                value, notes = fixed
+                batch.records.extend(_expand(value, line, line_text[:MAX_SNIPPET], notes))
+                pos = line_end
+                continue
+
+        end = _balanced_end(text, pos)
+        if end is not None:
+            seg = text[pos:end]
+            fixed = _repair(seg)
+            if fixed is not None:
+                value, notes = fixed
+                batch.records.extend(_expand(value, line, seg[:MAX_SNIPPET], notes))
+                pos = end
+                continue
+            if c == "[" or re.match(r"\{\s*[\"'“]?\w+[\"'”]?\s*:\s*\[", seg):
+                # A broken array or wrapper: step inside and read its records one by one.
+                pos = text.index("[", pos) + 1 if c == "{" else pos + 1
+                continue
+            batch.records.append(ReadError(line, f"invalid JSON: {err}", seg[:MAX_SNIPPET]))
             pos = end
-    return out
+            continue
+
+        # Unclosed (truncated) record: report it and resume at the next line that starts a record.
+        m = re.compile(r"\n[ \t]*[{\[]").search(text, pos + 1)
+        end = n if m is None else m.start()
+        batch.records.append(ReadError(line, f"incomplete or invalid JSON: {err}", text[pos:end][:MAX_SNIPPET]))
+        pos = end
+
+    if ignored:
+        batch.notes.append(f"ignored {len(ignored)} non-JSON text fragment(s): " + "; ".join(ignored[:5])
+                           + (" …" if len(ignored) > 5 else ""))
+    return batch
+
+
+def read_records(text: str) -> list[dict | ReadError]:
+    return read_batch(text).records

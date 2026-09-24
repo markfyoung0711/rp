@@ -5,6 +5,7 @@ Level 1 (new values) is handled by the rule tables. This module handles:
 - Level 3: records of an unknown shape, by searching for the fields we need wherever they are.
 Every default or guess is written to `warnings`, so the output explains itself.
 """
+import json
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
@@ -13,7 +14,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from . import config
 
 KNOWN_TOP = {"task_id", "persona", "lifecycle_stage", "consent", "channel_preferences", "input",
-             "assertions", "thresholds", "expected"}
+             "assertions", "thresholds", "expected", "_ingest"}
 KNOWN_INPUT = {"property_name", "move_date_target", "last_interaction", "timezone", "language", "profile",
                "last_message", "inbound_message", "reply", "last_reply", "last_inbound"}
 TRUE_WORDS = {"true", "yes", "y", "1", "opted_in", "opt_in", "granted", "allowed", "on"}
@@ -147,8 +148,46 @@ def _parse_tz(v, facts: dict | None, warnings: list) -> ZoneInfo:
     return ZoneInfo("America/Chicago")
 
 
+def _canon(k) -> str:
+    return re.sub(r"[^a-z0-9]", "", str(k).lower())
+
+
+def _canonical_keys(d: dict, known: set, warnings: list, where: str) -> dict:
+    """Map key variants (Task_ID, taskId, "Channel Preferences") to the canonical names."""
+    lookup = {_canon(k): k for k in known}
+    out = {}
+    for k, v in d.items():
+        target = lookup.get(_canon(k), k)
+        if target != k:
+            warnings.append(f"key {where}{k!r} read as {target!r}")
+        out[target] = v
+    return out
+
+
+def _json_field(v, warnings: list, name: str):
+    """A dict/list field that arrived as a JSON string."""
+    if isinstance(v, str) and v.strip()[:1] in ("{", "["):
+        try:
+            parsed = json.loads(v)
+            warnings.append(f"{name} was a JSON string; parsed")
+            return parsed
+        except json.JSONDecodeError:
+            pass
+    return v
+
+
 def normalize(rec: dict) -> Case:
-    warnings: list = []
+    warnings: list = list(rec.get("_ingest") or [])
+    rec = _canonical_keys(rec, KNOWN_TOP, warnings, "")
+    for k in ("input", "consent", "channel_preferences", "assertions"):
+        if k in rec:
+            rec[k] = _json_field(rec[k], warnings, k)
+    if isinstance(rec.get("input"), dict):
+        rec["input"] = _canonical_keys(rec["input"], KNOWN_INPUT, warnings, "input.")
+        if "profile" in rec["input"]:
+            rec["input"]["profile"] = _json_field(rec["input"]["profile"], warnings, "input.profile")
+        if isinstance(rec["input"].get("profile"), dict):
+            rec["input"]["profile"] = _canonical_keys(rec["input"]["profile"], {"first_name", "amenity_interest", "city_interest"}, warnings, "profile.")
     known_shape = any(k in rec for k in ("consent", "channel_preferences", "input", "persona", "lifecycle_stage"))
     inp = rec.get("input") if isinstance(rec.get("input"), dict) else {}
     profile = inp.get("profile") if isinstance(inp.get("profile"), dict) else {}

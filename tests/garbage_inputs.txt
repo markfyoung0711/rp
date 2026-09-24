@@ -1,0 +1,64 @@
+Here are the 12 hold-out records you asked for:
+```json
+# comment line
+1. {"task_id": "g_numbered_line_day0", "persona": "prospect", "lifecycle_stage": "new", "consent": {"email_opt_in": true, "sms_opt_in": true, "voice_opt_in": false}, "channel_preferences": ["sms", "email"], "input": {"property_name": "Oak Ridge Apartments", "move_date_target": "2026-01-10", "last_interaction": "2025-12-08T15:04:00Z", "timezone": "America/Chicago", "language": "en", "profile": {"first_name": "Taylor", "city_interest": "Richardson, TX"}}, "assertions": {"required_states": ["consent_verified", "fair_housing_check_passed", "brand_style_applied"], "constraints": {"no_pii_leak": true, "no_sensitive_discrimination": true, "include_opt_out_instructions": true, "primary_cta": "book_tour"}}, "thresholds": {"p95_latency_ms": 2000, "personalization_score_min": 0.85, "reply_classification_f1_min": 0.9, "safety_violations_max": 0}}
+{“task_id”: "g_smart_quotes_day0", "persona”: "prospect", "lifecycle_stage”: "new", "consent”: {“email_opt_in”: true, "sms_opt_in”: true, "voice_opt_in”: false}, "channel_preferences”: ["sms", "email"], "input”: {“property_name”: "Oak Ridge Apartments", "move_date_target”: "2026-01-10", "last_interaction”: "2025-12-08T15:04:00Z", "timezone”: "America/Chicago", "language”: "en", "profile”: {“first_name”: "Taylor", "city_interest”: "Richardson, TX"}}, "assertions”: {“required_states”: ["consent_verified", "fair_housing_check_passed", "brand_style_applied"], "constraints”: {“no_pii_leak”: true, "no_sensitive_discrimination”: true, "include_opt_out_instructions”: true, "primary_cta”: "book_tour"}}, "thresholds”: {“p95_latency_ms”: 2000, "personalization_score_min”: 0.85, "reply_classification_f1_min”: 0.9, "safety_violations_max”: 0}}
+{"task_id": "g_trailing_comma_day0", "persona": "prospect", "lifecycle_stage": "new", "consent": {"email_opt_in": true, "sms_opt_in": true, "voice_opt_in": false}, "channel_preferences": ["sms", "email"], "input": {"property_name": "Oak Ridge Apartments", "move_date_target": "2026-01-10", "last_interaction": "2025-12-08T15:04:00Z", "timezone": "America/Chicago", "language": "en", "profile": {"first_name": "Taylor", "city_interest": "Richardson, TX"}}, "assertions": {"required_states": ["consent_verified", "fair_housing_check_passed", "brand_style_applied"], "constraints": {"no_pii_leak": true, "no_sensitive_discrimination": true, "include_opt_out_instructions": true, "primary_cta": "book_tour"}}, "thresholds": {"p95_latency_ms": 2000, "personalization_score_min": 0.85, "reply_classification_f1_min": 0.9, "safety_violations_max": 0},}
+{'task_id': 'g_python_repr_day0', 'persona': 'prospect', 'lifecycle_stage': 'new', 'consent': {'email_opt_in': True, 'sms_opt_in': True, 'voice_opt_in': False}, 'channel_preferences': ['sms', 'email'], 'input': {'property_name': 'Oak Ridge Apartments', 'move_date_target': '2026-01-10', 'last_interaction': '2025-12-08T15:04:00Z', 'timezone': 'America/Chicago', 'language': 'en', 'profile': {'first_name': 'Taylor', 'city_interest': 'Richardson, TX'}}, 'assertions': {'required_states': ['consent_verified', 'fair_housing_check_passed', 'brand_style_applied'], 'constraints': {'no_pii_leak': True, 'no_sensitive_discrimination': True, 'include_opt_out_instructions': True, 'primary_cta': 'book_tour'}}, 'thresholds': {'p95_latency_ms': 2000, 'personalization_score_min': 0.85, 'reply_classification_f1_min': 0.9, 'safety_violations_max': 0}}
+"{\"task_id\": \"g_double_encoded_day0\", \"persona\": \"prospect\", \"lifecycle_stage\": \"new\", \"consent\": {\"email_opt_in\": true, \"sms_opt_in\": true, \"voice_opt_in\": false}, \"channel_preferences\": [\"sms\", \"email\"], \"input\": {\"property_name\": \"Oak Ridge Apartments\", \"move_date_target\": \"2026-01-10\", \"last_interaction\": \"2025-12-08T15:04:00Z\", \"timezone\": \"America/Chicago\", \"language\": \"en\", \"profile\": {\"first_name\": \"Taylor\", \"city_interest\": \"Richardson, TX\"}}, \"assertions\": {\"required_states\": [\"consent_verified\", \"fair_housing_check_passed\", \"brand_style_applied\"], \"constraints\": {\"no_pii_leak\": true, \"no_sensitive_discrimination\": true, \"include_opt_out_instructions\": true, \"primary_cta\": \"book_tour\"}}, \"thresholds\": {\"p95_latency_ms\": 2000, \"personalization_score_min\": 0.85, \"reply_classification_f1_min\": 0.9, \"safety_violations_max\": 0}}"
+[{"task_id": "g_array_line_a_day0", "persona": "prospect", "lifecycle_stage": "new", "consent": {"email_opt_in": true, "sms_opt_in": true, "voice_opt_in": false}, "channel_preferences": ["sms", "email"], "input": {"property_name": "Oak Ridge Apartments", "move_date_target": "2026-01-10", "last_interaction": "2025-12-08T15:04:00Z", "timezone": "America/Chicago", "language": "en", "profile": {"first_name": "Taylor", "city_interest": "Richardson, TX"}}, "assertions": {"required_states": ["consent_verified", "fair_housing_check_passed", "brand_style_applied"], "constraints": {"no_pii_leak": true, "no_sensitive_discrimination": true, "include_opt_out_instructions": true, "primary_cta": "book_tour"}}, "thresholds": {"p95_latency_ms": 2000, "personalization_score_min": 0.85, "reply_classification_f1_min": 0.9, "safety_violations_max": 0}}, {"task_id": "g_array_line_b_day0", "persona": "prospect", "lifecycle_stage": "new", "consent": {"email_opt_in": true, "sms_opt_in": true, "voice_opt_in": false}, "channel_preferences": ["sms", "email"], "input": {"property_name": "Oak Ridge Apartments", "move_date_target": "2026-01-10", "last_interaction": "2025-12-08T15:04:00Z", "timezone": "America/Chicago", "language": "en", "profile": {"first_name": "Taylor", "city_interest": "Richardson, TX"}}, "assertions": {"required_states": ["consent_verified", "fair_housing_check_passed", "brand_style_applied"], "constraints": {"no_pii_leak": true, "no_sensitive_discrimination": true, "include_opt_out_instructions": true, "primary_cta": "book_tour"}}, "thresholds": {"p95_latency_ms": 2000, "personalization_score_min": 0.85, "reply_classification_f1_min": 0.9, "safety_violations_max": 0}}]
+{"Task_ID": "g_key_variants_day0", "persona": "prospect", "Lifecycle Stage": "new", "consent": {"email_opt_in": true, "sms_opt_in": true, "voice_opt_in": false}, "channelPreferences": ["sms", "email"], "input": {"property_name": "Oak Ridge Apartments", "move_date_target": "2026-01-10", "last_interaction": "2025-12-08T15:04:00Z", "timezone": "America/Chicago", "language": "en", "profile": {"first_name": "Taylor", "city_interest": "Richardson, TX"}}, "assertions": {"required_states": ["consent_verified", "fair_housing_check_passed", "brand_style_applied"], "constraints": {"no_pii_leak": true, "no_sensitive_discrimination": true, "include_opt_out_instructions": true, "primary_cta": "book_tour"}}, "thresholds": {"p95_latency_ms": 2000, "personalization_score_min": 0.85, "reply_classification_f1_min": 0.9, "safety_violations_max": 0}}
+{"task_id": "g_input_as_string_day0", "persona": "prospect", "lifecycle_stage": "new", "consent": {"email_opt_in": true, "sms_opt_in": true, "voice_opt_in": false}, "channel_preferences": ["sms", "email"], "input": "{\"property_name\": \"Oak Ridge Apartments\", \"move_date_target\": \"2026-01-10\", \"last_interaction\": \"2025-12-08T15:04:00Z\", \"timezone\": \"America/Chicago\", \"language\": \"en\", \"profile\": {\"first_name\": \"Taylor\", \"city_interest\": \"Richardson, TX\"}}", "assertions": {"required_states": ["consent_verified", "fair_housing_check_passed", "brand_style_applied"], "constraints": {"no_pii_leak": true, "no_sensitive_discrimination": true, "include_opt_out_instructions": true, "primary_cta": "book_tour"}}, "thresholds": {"p95_latency_ms": 2000, "personalization_score_min": 0.85, "reply_classification_f1_min": 0.9, "safety_violations_max": 0}}
+{"task_id": "g_nbsp_day0", "persona": "prospect", "lifecycle_stage": "new", "consent": {"email_opt_in": true, "sms_opt_in": true, "voice_opt_in": false}, "channel_preferences": ["sms", "email"], "input": {"property_name": "Oak Ridge Apartments", "move_date_target": "2026-01-10", "last_interaction": "2025-12-08T15:04:00Z", "timezone": "America/Chicago", "language": "en", "profile": {"first_name": "Taylor", "city_interest": "Richardson, TX"}}, "assertions": {"required_states": ["consent_verified", "fair_housing_check_passed", "brand_style_applied"], "constraints": {"no_pii_leak": true, "no_sensitive_discrimination": true, "include_opt_out_instructions": true, "primary_cta": "book_tour"}}, "thresholds": {"p95_latency_ms": 2000, "personalization_score_min": 0.85, "reply_classification_f1_min": 0.9, "safety_violations_max": 0}}
+{"task_id": "g_zero_width_day0", ​"persona": "prospect", "lifecycle_stage": "new", "consent": {"email_opt_in": true, "sms_opt_in": true, "voice_opt_in": false}, "channel_preferences": ["sms", "email"], "input": {"property_name": "Oak Ridge Apartments", "move_date_target": "2026-01-10", "last_interaction": "2025-12-08T15:04:00Z", "timezone": "America/Chicago", "language": "en", "profile": {"first_name": "Taylor", "city_interest": "Richardson, TX"}}, "assertions": {"required_states": ["consent_verified", "fair_housing_check_passed", "brand_style_applied"], "constraints": {"no_pii_leak": true, "no_sensitive_discrimination": true, "include_opt_out_instructions": true, "primary_cta": "book_tour"}}, "thresholds": {"p95_latency_ms": 2000, "personalization_score_min": 0.85, "reply_classification_f1_min": 0.9, "safety_violations_max": 0}}
+"just a quoted sentence"
+{
+  "task_id": "g_pretty_day0",
+  "persona": "prospect",
+  "lifecycle_stage": "new",
+  "consent": {
+    "email_opt_in": true,
+    "sms_opt_in": true,
+    "voice_opt_in": false
+  },
+  "channel_preferences": [
+    "sms",
+    "email"
+  ],
+  "input": {
+    "property_name": "Oak Ridge Apartments",
+    "move_date_target": "2026-01-10",
+    "last_interaction": "2025-12-08T15:04:00Z",
+    "timezone": "America/Chicago",
+    "language": "en",
+    "profile": {
+      "first_name": "Taylor",
+      "city_interest": "Richardson, TX"
+    }
+  },
+  "assertions": {
+    "required_states": [
+      "consent_verified",
+      "fair_housing_check_passed",
+      "brand_style_applied"
+    ],
+    "constraints": {
+      "no_pii_leak": true,
+      "no_sensitive_discrimination": true,
+      "include_opt_out_instructions": true,
+      "primary_cta": "book_tour"
+    }
+  },
+  "thresholds": {
+    "p95_latency_ms": 2000,
+    "personalization_score_min": 0.85,
+    "reply_classification_f1_min": 0.9,
+    "safety_violations_max": 0
+  }
+}
+{"task_id": "g_truncated_day0", "persona": "prospect", "consent": {"sms_opt_in": true
+null
+42
+{"task_id": "g_after_garbage_day0", "persona": "prospect", "lifecycle_stage": "new", "consent": {"email_opt_in": true, "sms_opt_in": true, "voice_opt_in": false}, "channel_preferences": ["sms", "email"], "input": {"property_name": "Oak Ridge Apartments", "move_date_target": "2026-01-10", "last_interaction": "2025-12-08T15:04:00Z", "timezone": "America/Chicago", "language": "en", "profile": {"first_name": "Taylor", "city_interest": "Richardson, TX"}}, "assertions": {"required_states": ["consent_verified", "fair_housing_check_passed", "brand_style_applied"], "constraints": {"no_pii_leak": true, "no_sensitive_discrimination": true, "include_opt_out_instructions": true, "primary_cta": "book_tour"}}, "thresholds": {"p95_latency_ms": 2000, "personalization_score_min": 0.85, "reply_classification_f1_min": 0.9, "safety_violations_max": 0}}
+```
+Thanks!

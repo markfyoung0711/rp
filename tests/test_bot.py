@@ -70,3 +70,32 @@ def test_reader_formats():
     assert len(read_records(json.dumps(one, indent=2) * 2)) == 2    # pretty-printed, concatenated
     mixed = read_records(SAMPLES.splitlines()[0] + "\n{broken\n" + SAMPLES.splitlines()[1])
     assert [type(x) for x in mixed] == [dict, ReadError, dict]
+
+
+GARBAGE = (ROOT / "tests" / "garbage_inputs.txt").read_text(encoding="utf-8")
+
+
+def test_garbage_file_reads_every_repairable_record():
+    from outreach.reader import read_batch
+    batch = read_batch(GARBAGE)
+    ids = [(r.get("task_id") or r.get("Task_ID")) if isinstance(r, dict) else r.task_id for r in batch.records]
+    for tid in ["g_numbered_line_day0", "g_smart_quotes_day0", "g_trailing_comma_day0", "g_python_repr_day0",
+                "g_double_encoded_day0", "g_array_line_a_day0", "g_array_line_b_day0", "g_input_as_string_day0",
+                "g_nbsp_day0", "g_zero_width_day0", "g_pretty_day0", "g_after_garbage_day0"]:
+        assert tid in ids, tid
+    assert any(isinstance(r, ReadError) and r.task_id == "g_truncated_day0" for r in batch.records)
+    assert any("Task_ID" in str(r) for r in batch.records if isinstance(r, dict))  # key variant kept for normalize
+    results = run(GARBAGE)
+    sent = [r for r in results if r["next_message"]]
+    assert len(sent) == 13 and all("STOP" in r["next_message"]["body"] for r in sent)
+
+
+def test_byte_level_garbage_never_raises():
+    import os
+    from outreach.reader import decode_bytes, read_batch
+    utf16 = (ROOT / "tests" / "garbage_utf16.jsonl").read_bytes()
+    text, notes = decode_bytes(utf16)
+    assert len(read_batch(text).records) == 2 and notes
+    for blob in (os.urandom(4000), b"\xff\xfe\x00junk\x80", b"", b"[" * 50000, "{\u201ctask_id\u201d: 1}".encode("cp1252", "replace")):
+        text, _ = decode_bytes(blob)
+        read_batch(text)   # must not raise

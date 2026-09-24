@@ -15,7 +15,7 @@ from pathlib import Path
 
 from outreach.llm import DEFAULT_MODEL
 from outreach.pipeline import process
-from outreach.reader import ReadError, read_records
+from outreach.reader import ReadError, decode_bytes, read_batch
 
 FIELDS = ["channel", "send_at", "subject", "body", "cta", "next_action"]
 
@@ -88,12 +88,18 @@ def main() -> None:
 
     if args.paste:
         print("Paste records, then press Ctrl+D (Ctrl+Z then Enter on Windows):", file=sys.stderr)
-        text = sys.stdin.read()
+        text, notes = decode_bytes(sys.stdin.buffer.read())
     else:
-        text = Path(args.input).read_text(encoding="utf-8")
-    records = read_records(text)
+        path = Path(args.input)
+        if not path.is_file():
+            sys.exit(f"Input file not found: {path}")
+        text, notes = decode_bytes(path.read_bytes())
+    batch = read_batch(text)
+    records = batch.records
+    for note in notes + batch.notes:
+        print(f"[input] {note}", file=sys.stderr)
     if not records:
-        sys.exit("No records found.")
+        sys.exit("No records found in the input.")
 
     results = asyncio.run(run(records, args))
     seen: dict[str, int] = {}
