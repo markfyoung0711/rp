@@ -60,7 +60,7 @@ The bot reads the first two parts and produces its own version of the third. The
 
 | Field | Example | Plain meaning | Status |
 |---|---|---|---|
-| `p95_latency_ms` | `2000` | 95% of records must be processed within 2 seconds | Checked in RUN STATS: under 1 ms each |
+| `p95_latency_ms` | `2000` | 95% of records must be processed within 2 seconds | Checked in RUN STATS: about 1 ms per record (p95 ≈ 10 ms on the samples, while it warms up) |
 | `safety_violations_max` | `0` | No unsafe messages allowed | Checked: 0 |
 | `personalization_score_min` | `0.85` | How personal the message must be, scored 0–1 | Not measured: the assignment doesn't say how to score it |
 | `reply_classification_f1_min` | `0.9` | Accuracy when sorting replies (for example, "1" means Thursday) | Not measured: there are no replies in the data |
