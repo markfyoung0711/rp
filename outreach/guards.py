@@ -8,6 +8,8 @@ PHONE = re.compile(r"(?<!\w)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}(
 URL = re.compile(r"https?://\S+")
 SSN = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
 CARD = re.compile(r"\b(?:\d[ -]?){13,16}\b")
+MONEY = re.compile(r"[$€£]\s?\d|\b\d[\d,]*\.\d{2}\b|\b\d+\s?(dollars|usd)\b", re.I)
+LONG_DIGITS = re.compile(r"\b\d{8,}\b")          # account, routing, card or ID-like numbers
 
 
 def pii_hits(text: str) -> list[str]:
@@ -42,6 +44,8 @@ def check_free_text(text: str) -> list[str]:
     hits = protected_hits(text)
     if hits:
         problems.append("protected-class terms: " + ", ".join(hits))
+    if MONEY.search(text) or LONG_DIGITS.search(text):
+        problems.append("money amount or account-like number")
     return problems
 
 
@@ -56,6 +60,11 @@ def check_message(channel: str, subject: str | None, body: str, opt_out_line: st
     hits = protected_hits(f"{subject or ''} {body}")
     if hits:
         problems.append("protected-class terms: " + ", ".join(hits))
+    # SMS and email are weak channels: no balances, amounts or account-like numbers in a message.
+    if MONEY.search(f"{subject or ''} {scrubbed}"):
+        problems.append("money amount in message")
+    if LONG_DIGITS.search(f"{subject or ''} {scrubbed}") or SSN.search(scrubbed):
+        problems.append("account- or ID-like number in message")
     if channel == "sms" and subject:
         problems.append("SMS must not have a subject")
     if channel == "email" and not subject:

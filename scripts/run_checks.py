@@ -126,9 +126,11 @@ def main(full: bool) -> int:
 
     # C. PII: planted personal data must not appear anywhere in the output (only the first name, in the greeting)
     pii_out = sh("uv", "run", "bot.py", "-i", str(ROOT / "tests" / "pii_cases.jsonl"), "--quiet")
-    planted = ["Okafor", "taylor.okafor@example.com", "555-0187", "555 0187", "123-45-6789", "1990-04-12", "1200 Elm", "4111 1111"]
+    planted = ["Okafor", "taylor.okafor@example.com", "555-0187", "555 0187", "123-45-6789", "1990-04-12", "1200 Elm",
+               "4111 1111", "321-54-9876", "000123456789", "111000025", "Acme Logistics", "wheelchair", "anxiety",
+               "domestic violence", "H-1B", "Mensah", "412.5", "1895", "4471", "203.0.113.42", "12-3456789", "Muslim"]
     leaked = [x for x in planted if x in pii_out.stdout]
-    check("P0", "PII: planted email/phone/SSN/DOB/address/card never in output", not leaked, ", ".join(leaked))
+    check("P0", "PII: 20 rental-PII categories planted, none in output", not leaked, ", ".join(leaked))
 
     # D. Static
     check("P0", "pytest", sh("uv", "run", "pytest", "-q").returncode == 0)

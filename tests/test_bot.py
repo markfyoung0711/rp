@@ -125,16 +125,51 @@ def test_no_pii_in_any_output_field():
             assert r["next_message"]["body"].startswith(("Hi Taylor", "Hi there"))
 
 
-def test_pii_audit_counts_what_was_withheld():
+def test_pii_audit_covers_every_rental_pii_category():
+    """plans/pii-categories.md: every category is planted in tests/pii_cases.jsonl, detected, and withheld."""
     from outreach import pii
-    recs = read_records((ROOT / "tests" / "pii_cases.jsonl").read_text())
-    outs = run((ROOT / "tests" / "pii_cases.jsonl").read_text())
-    withheld, leaked = {}, 0
+    text = (ROOT / "tests" / "pii_cases.jsonl").read_text()
+    recs, outs = read_records(text), run(text)
+    withheld, leaked, protected = {}, 0, 0
     for rec, out in zip(recs, outs):
         a = pii.audit(rec, out)
         leaked += sum(a["leaked"].values())
+        protected += a["protected_withheld"]
         for k, v in a["withheld"].items():
             withheld[k] = withheld.get(k, 0) + v
     assert leaked == 0
-    assert withheld == {"phone": 4, "email": 3, "SSN / national ID": 2, "last name": 1, "date of birth": 1,
-                        "address": 1, "payment card / bank": 1}
+    missing = [c for c, _tier, _pat in pii.KEY_CATEGORIES if c not in withheld]
+    assert not missing, missing
+    assert protected >= 8
+
+
+def test_sensitive_data_never_reaches_the_model_prompt():
+    from outreach import compose, decide, llm
+    from outreach.normalize import normalize
+    rec = next(r for r in read_records((ROOT / "tests" / "pii_cases.jsonl").read_text())
+               if r.get("task_id") == "pii_rental_everything_day2")
+    case = normalize(rec)
+    why: list = []
+    ch = decide.choose_channel(case, why)
+    d = compose.draft(case, ch, decide.send_time(case, ch, None, why), why)
+    prompt = json.dumps(llm.facts_for_prompt(case, ch, d), ensure_ascii=False)
+    for planted in ("Okafor", "555-0199", "321-54-9876", "1895", "412.5", "wheelchair", "anxiety", "H-1B",
+                    "Acme", "4471", "203.0.113.42", "domestic violence", "Mensah", "1988-02-29"):
+        assert planted not in prompt, planted
+
+
+def test_messages_never_carry_money_or_account_numbers():
+    from outreach import guards
+    assert "money amount in message" in guards.check_message("sms", None, "Hi, your balance is $412.50. Reply STOP to opt out.", "Reply STOP to opt out.")
+    assert any("account" in p for p in guards.check_message("sms", None, "Acct 000123456789. Reply STOP to opt out.", "Reply STOP to opt out."))
+    for r in run((ROOT / "tests" / "pii_cases.jsonl").read_text()):
+        if r["next_message"]:
+            assert not guards.MONEY.search(r["next_message"]["body"])
+
+
+def test_stats_never_crash_on_any_fixture():
+    import subprocess
+    for f in ("plans/sample.jsonl", "tests/edge_cases.jsonl", "tests/garbage_inputs.txt", "tests/pii_cases.jsonl",
+              "tests/perf_100.jsonl", "tests/garbage_utf16.jsonl"):
+        r = subprocess.run(["uv", "run", "bot.py", "-i", f], cwd=ROOT, capture_output=True, text=True)
+        assert r.returncode == 0 and "RUN STATS" in r.stdout, (f, r.stderr[-300:])

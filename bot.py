@@ -161,7 +161,10 @@ def print_stats(results: list[dict], records: list, args, wall_s: float, input_n
     for rec, res in zip(records, results):
         if not isinstance(rec, dict):
             continue
-        a = pii.audit(rec, res)
+        try:
+            a = pii.audit(rec, res)
+        except Exception:  # noqa: BLE001 -- reporting must never break a run
+            continue
         withheld.update(a["withheld"])
         leaked.update(a["leaked"])
         protected += a["protected_withheld"]
