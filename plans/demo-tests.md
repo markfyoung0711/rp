@@ -50,7 +50,7 @@ Every command runs from the project folder (`~/realpage`) with no network, unles
 | # | Command | What it shows |
 |---|---|---|
 | 24 | `uv run bot.py -i tests/perf_100.jsonl` | 100 varied records in ~0.2 s; p95 well under 2,000 ms |
-| 25 | `uv run bot.py -i plans/sample.jsonl --llm --compare` | No-cost mode: with no cached answer, `--llm` keeps the template and says so; nothing is billed. (Paid wording only with `BOT_ALLOW_API_COST=1`.) |
+| 25 | `uv run bot.py -i tests/edge_cases.jsonl --llm` | Cost guard: **stops loudly** (exit 3) before any API call and says how many paid calls, tokens and **dollars were avoided**; points to the free template mode |
 | 26 | `BOT_ALLOW_API_COST=1 ANTHROPIC_API_KEY=bad uv run bot.py -i plans/sample.jsonl --llm --compare` | API unavailable (the bad key is rejected, never billed) → template fallback; both samples still match |
 
 ## 6. Whole-system checks
@@ -58,6 +58,6 @@ Every command runs from the project folder (`~/realpage`) with no network, unles
 | # | Command | What it shows |
 |---|---|---|
 | 27 | `uv run pytest` | Unit tests: samples, edge cases, determinism, input formats, garbage, binary refusal |
-| 28 | `uv run python scripts/run_checks.py --full` | The code-review checklist, automated: 27 checks, including a clean-clone install and the no-cost guard |
+| 28 | `uv run python scripts/run_checks.py --full` | The code-review checklist, automated: 27 checks, including a clean-clone install and the cost guard |
 
 **Suggested live order (about 5 minutes):** 1 → 2 → 8 → 4 → 17 → 20 → 22 → 24, then the hold-out itself.

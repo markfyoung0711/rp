@@ -19,6 +19,28 @@ def decide_only(case: Case) -> tuple[str, compose.Draft] | None:
     return channel, compose.draft(case, channel, send_at, why)
 
 
+def pending_llm_call(item, model: str, now: datetime | None):
+    """If processing `item` with --llm would need a *new* (billable) model call, return its messages; else None.
+    Runs only the free, deterministic steps; never contacts the API."""
+    if isinstance(item, ReadError):
+        return None
+    try:
+        from . import llm
+        case = normalize(item)
+        why: list = []
+        if decide.stop_gate(case, why):
+            return None
+        channel = decide.choose_channel(case, why)
+        if not channel:
+            return None
+        send_at = decide.send_time(case, channel, now, why)
+        draft = compose.draft(case, channel, send_at, why)
+        messages, cache_file = llm.request_for(case, channel, draft, model)
+        return None if cache_file.exists() else messages
+    except Exception:  # noqa: BLE001 -- a record that fails here fails safely in process() too
+        return None
+
+
 def _no_send(task_id: str, reason: str, why: list, warnings: list, action: str = "suppress", **meta) -> dict:
     why.append(f"decision: do not send ({reason})")
     return {

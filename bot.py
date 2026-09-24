@@ -13,8 +13,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from outreach import llm
 from outreach.llm import DEFAULT_MODEL
-from outreach.pipeline import process
+from outreach.pipeline import pending_llm_call, process
 from outreach.reader import ReadError, UnsupportedInput, decode_bytes, read_batch
 
 FIELDS = ["channel", "send_at", "subject", "body", "cta", "next_action"]
@@ -73,6 +74,42 @@ async def run(records: list, args) -> list[dict]:
     return await asyncio.gather(*(process(r, use_llm=args.llm, model=args.model, now=now) for r in records))
 
 
+def cost_gate(records: list, args) -> None:
+    """--llm: estimate the paid calls this run needs. Without explicit permission, stop loudly and say why."""
+    now = datetime.fromisoformat(args.now.replace("Z", "+00:00")) if args.now else None
+    pending = [m for m in (pending_llm_call(r, args.model, now) for r in records) if m is not None]
+    if not pending:
+        if args.llm:
+            print("[cost] --llm: every model answer is already cached; this run costs $0.", file=sys.stderr)
+        return
+    tokens_in = sum(llm.estimate_tokens(m) for m in pending)
+    tokens_out = llm.OUTPUT_TOKENS_PER_CALL * len(pending)
+    usd = llm.cost_usd(args.model, tokens_in, tokens_out)
+    usd_txt = f"about ${usd:.4f}" if usd is not None else "an unknown amount (no price on file for this model)"
+    per = f" (~${usd / len(pending):.5f} per call)" if usd else ""
+    if llm.paid_calls_allowed():
+        print(f"[cost] BOT_ALLOW_API_COST=1: making {len(pending)} paid call(s) to {args.model}, "
+              f"~{tokens_in:,} input + ~{tokens_out:,} output tokens, {usd_txt}.", file=sys.stderr)
+        return
+    bar = "=" * 78
+    print(f"""{bar}
+STOPPED: this run would incur AI API cost, and paid calls are turned off.
+
+  Requested:  --llm (Claude writes the message wording)
+  Model:      {args.model}
+  Would make: {len(pending)} new API call(s), out of {len(records)} record(s)
+              (records that won't be sent, and cached answers, are free)
+  Estimated:  ~{tokens_in:,} input tokens + ~{tokens_out:,} output tokens
+  Cost avoided: {usd_txt}{per}
+
+Nothing was processed and no API call was made.
+  - Run without --llm: template mode is free, offline, deterministic, and matches the samples exactly.
+  - To accept the cost, re-run with BOT_ALLOW_API_COST=1 (and ANTHROPIC_API_KEY set).
+Estimates are local (no API call) and use list prices; actual billing may differ slightly.
+{bar}""", file=sys.stderr)
+    sys.exit(3)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Decide the next outreach message for each record.")
     src = ap.add_mutually_exclusive_group(required=True)
@@ -116,6 +153,8 @@ def main() -> None:
         records = [records[i] for i in keep]
         if not records:
             sys.exit(f"No record's task_id contains {args.only!r}.")
+    if args.llm:
+        cost_gate(records, args)
     results = asyncio.run(run(records, args))
     seen: dict[str, int] = {}
     for r in results:

@@ -106,6 +106,37 @@ def _messages(facts: dict) -> list:
     return msgs
 
 
+# USD per million tokens (input, output). Used only to show the cost that would be incurred.
+PRICES = {"claude-haiku-4-5": (1.0, 5.0), "claude-sonnet-5": (2.0, 10.0), "claude-sonnet-4-6": (3.0, 15.0),
+          "claude-opus-5": (5.0, 25.0), "claude-opus-5-5": (4.0, 20.0), "claude-opus-4-8": (5.0, 25.0),
+          "claude-fable-5-1": (10.0, 50.0), "claude-fable-5": (10.0, 50.0)}
+TOOL_OVERHEAD_TOKENS = 350      # tool-use system prompt + schema, not visible in our text
+OUTPUT_TOKENS_PER_CALL = 100    # measured answers are ~160 characters plus the tool-call wrapper
+
+
+def request_for(case: Case, channel: str, draft: compose.Draft, model: str):
+    """The exact messages a model call would send, and the cache file that would answer it."""
+    messages = _messages(facts_for_prompt(case, channel, draft))
+    key = hashlib.sha256(json.dumps([model, SYSTEM, messages], sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    return messages, CACHE_DIR / f"{key}.json"
+
+
+def estimate_tokens(messages: list) -> int:
+    """Local estimate (no API call): ~2.6 characters per token (indented JSON is token-dense), plus tool overhead.
+    Calibrated against count_tokens, which measured 1,668-1,675 tokens for typical records."""
+    chars = len(SYSTEM) + len(json.dumps(TOOL)) + sum(len(m["content"]) for m in messages)
+    return int(chars / 2.6) + TOOL_OVERHEAD_TOKENS
+
+
+def cost_usd(model: str, input_tokens: int, output_tokens: int) -> float | None:
+    price = PRICES.get(model)
+    return None if price is None else (input_tokens * price[0] + output_tokens * price[1]) / 1_000_000
+
+
+def paid_calls_allowed() -> bool:
+    return os.environ.get("BOT_ALLOW_API_COST") == "1"
+
+
 _client = None
 _semaphore: asyncio.Semaphore | None = None
 
@@ -113,10 +144,7 @@ _semaphore: asyncio.Semaphore | None = None
 async def write(case: Case, channel: str, draft: compose.Draft, model: str, why: list) -> tuple[str | None, str] | None:
     """(subject, core) from the model, or None to keep the template (reason added to `why`)."""
     global _client, _semaphore
-    facts = facts_for_prompt(case, channel, draft)
-    messages = _messages(facts)
-    key = hashlib.sha256(json.dumps([model, SYSTEM, messages], sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-    cache_file = CACHE_DIR / f"{key}.json"
+    messages, cache_file = request_for(case, channel, draft, model)
 
     if cache_file.exists():
         result = json.loads(cache_file.read_text())

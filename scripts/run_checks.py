@@ -134,8 +134,9 @@ def main(full: bool) -> int:
     check("P0", "time-zone data available", tz.returncode == 0, tz.stderr[-200:])
     check("P1", "README present", (ROOT / "README.md").exists())
     nocost = sh("uv", "run", "bot.py", "-i", str(EDGES), "--llm", "--quiet", env={"BOT_ALLOW_API_COST": "", "ANTHROPIC_API_KEY": "bad"})
-    check("P0", "--llm makes no paid calls unless BOT_ALLOW_API_COST=1",
-          "model call failed" not in nocost.stdout and nocost.returncode == 0)
+    check("P0", "--llm without permission stops loudly (exit 3) and names the cost avoided",
+          nocost.returncode == 3 and "Cost avoided: about $" in nocost.stderr and "BEGIN OUTPUT" not in nocost.stdout,
+          nocost.stderr[-300:])
 
     if full:
         # E. LLM offline fallback: a bad key must still produce complete output (auth fails -> no charge)
