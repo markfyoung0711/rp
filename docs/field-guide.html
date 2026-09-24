@@ -439,6 +439,10 @@ td code{white-space:nowrap}
 <td><code>meta.warnings</code></td>
 <td>Anything repaired, assumed or ignored in the input</td>
 </tr>
+<tr>
+<td><code>meta.gaps</code></td>
+<td>Machine-readable configuration gaps, only when present. For example <code>{"code": "property_facts_missing", "property": "Maple Court"}</code>: the property has no facts file, so the message is generic and uses the default brand. RUN STATS lists them under <strong>Config gaps</strong></td>
+</tr>
 </tbody>
 </table></div>
 <p><strong>For the hold-out hand-over,</strong> <code>--answer-only</code> leaves out <code>why</code> and <code>meta</code>. Each line is then exactly the samples' <code>expected</code> shape: <code>task_id</code>, <code>next_message</code>, <code>next_action</code>. The reasons still show on screen.</p>

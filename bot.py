@@ -197,6 +197,12 @@ def print_stats(results: list[dict], records: list, args, wall_s: float, input_n
     unmeasured = [f"{k} {th[k]}" for k in ("personalization_score_min", "reply_classification_f1_min") if k in th]
     if unmeasured:
         print(f"  Not measured {', '.join(unmeasured)} (no scoring rubric in the spec; no replies in the input)")
+    missing = Counter(g.get("property") for r in results for g in r["meta"].get("gaps", [])
+                      if g.get("code") == "property_facts_missing")
+    if missing:
+        print("  Config gaps  unknown properties (no facts file; generic message, default brand): "
+              + ", ".join(f"{k} ×{v}" for k, v in missing.most_common())
+              + ". Add them to config/properties.yaml.")
     print("  API cost     " + ("$0 (template mode, no API calls)" if not args.llm else "see [cost] line above ($0 if every answer was cached)"))
 
     if args.compare:

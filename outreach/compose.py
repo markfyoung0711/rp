@@ -127,6 +127,10 @@ def draft(case: Case, channel: str, send_at: datetime, why: list) -> Draft:
     prop = (facts or {}).get("short_name") or display_name(prop_full)
     if case.property_name and not facts:
         why.append(f"no facts on file for {case.property_name!r}; generic message with no specific claims")
+        if not any(g.get("code") == "property_facts_missing" for g in case.gaps):
+            case.warnings.append(f"property {case.property_name!r} has no facts file: generic message, default brand, "
+                                 f"display name {prop!r}")
+            case.gaps.append({"code": "property_facts_missing", "property": case.property_name})
     name = safe_first_name(case, why)
     link = (facts or {}).get(rule["link_key"])
     opt_out = OPT_OUT[lang][channel]      # always included, whatever the record says

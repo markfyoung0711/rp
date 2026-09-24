@@ -41,6 +41,11 @@ def pending_llm_call(item, model: str, now: datetime | None):
         return None
 
 
+def _final_confidence(initial: str, case: Case) -> str:
+    """A message that rests on a fallback (e.g. no property facts) is not high confidence."""
+    return "medium" if initial == "high" and (case.gaps or case.warnings) else initial
+
+
 REQUIRED_STATES = ("consent_verified", "fair_housing_check_passed", "brand_style_applied")
 
 
@@ -151,7 +156,9 @@ async def _process(item, use_llm: bool, model: str, now: datetime | None) -> dic
         },
         "next_action": decide.next_action(case, purpose, send_at, why),
         "why": why,
-        "meta": {**base_meta, "required_states": _required_states(case, True, True, True), "warnings": case.warnings},
+        "meta": {**base_meta, "confidence": _final_confidence(base_meta["confidence"], case),
+                 "required_states": _required_states(case, True, True, True), "warnings": case.warnings,
+                 **({"gaps": case.gaps} if case.gaps else {})},
     }
 
 

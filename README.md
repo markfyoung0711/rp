@@ -27,10 +27,11 @@ Input can be JSONL, a JSON array, a wrapper object, or pretty-printed objects, i
 
 ```json
 {"task_id": "...", "next_message": {"channel", "send_at", "subject", "body", "cta"} | null,
- "next_action": {...}, "why": ["one line per decision"], "meta": {"record_type", "confidence", "mode", "warnings"}}
+ "next_action": {...}, "why": ["one line per decision"],
+ "meta": {"record_type", "confidence", "mode", "required_states", "warnings", "gaps" (only when present)}}
 ```
 
-`next_message` and `next_action` follow the samples' `expected` shape. A no-send has `next_message: null` and `next_action: {"type": "suppress" | "human_review", "reason": ...}`.
+`next_message` and `next_action` follow the samples' `expected` shape. `meta.gaps` flags configuration gaps a downstream system can act on, such as `property_facts_missing` (a property with no facts file). The record still gets a safe, generic message at medium confidence, and RUN STATS lists these gaps under **Config gaps**. A no-send has `next_message: null` and `next_action: {"type": "suppress" | "human_review", "reason": ...}`.
 
 ## How it decides
 

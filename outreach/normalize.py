@@ -48,6 +48,7 @@ class Case:
     expected: dict | None
     required_states: list = field(default_factory=list)
     warnings: list = field(default_factory=list)
+    gaps: list = field(default_factory=list)      # machine-readable configuration gaps, e.g. a property with no facts file
 
 
 def _truthy(v) -> bool:

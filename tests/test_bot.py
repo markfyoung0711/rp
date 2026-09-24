@@ -345,3 +345,16 @@ def test_unknown_properties_get_the_short_display_name():
     out = run(json.dumps(rec))[0]
     assert "Cedar Point!" in out["next_message"]["body"] and "Apartments" not in out["next_message"]["body"]
     assert out["meta"]["required_states"]["brand_style_applied"] is True
+
+
+def test_unknown_property_is_flagged_per_record_and_per_run():
+    import subprocess
+    rec = json.loads(SAMPLES.splitlines()[0])
+    rec.pop("expected")
+    rec["input"]["property_name"] = "Cedar Point Apartments"
+    out = run(json.dumps(rec))[0]
+    assert out["meta"]["gaps"] == [{"code": "property_facts_missing", "property": "Cedar Point Apartments"}]
+    assert out["meta"]["confidence"] == "medium" and any("no facts file" in w for w in out["meta"]["warnings"])
+    assert "gaps" not in run(SAMPLES)[0]["meta"]                               # known property: no gap
+    r = subprocess.run(["uv", "run", "bot.py", "--paste"], input=json.dumps(rec), cwd=ROOT, capture_output=True, text=True)
+    assert "Config gaps  unknown properties" in r.stdout and "Cedar Point Apartments ×1" in r.stdout
