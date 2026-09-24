@@ -64,6 +64,7 @@ Times are US Central (CDT). Delivery deadline: **2026-09-24, 12:00 noon** (D-021
 | #9 Independent reviews | Closed. Both reviews done |
 | #10 External reviews | Open, labelled `deferred` (D-030) |
 | #11 Core bot v1 | Closed. Tagged **v0.1.0** |
+| #12 Core hardening v0.2 | Closed. Tagged **v0.2.0** (ingestion, PII, cost guard, stats, checks) |
 
 ## Next
 
