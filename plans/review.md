@@ -356,6 +356,44 @@ Sample 1 sends on a Tuesday, and the expected "Thursday or Friday" is send date 
 | Export of 12 hold-out outputs | Gap | No export path or format defined |
 
 
+## Review 1 addendum — core functionality focus
+
+> Pasted word for word, 2026-09-24.
+
+Build a single decision step that turns one input record into one output. Everything else in the solution document should be presented as "designed, not built." I don't know how much time you have left or what already exists, so this is in priority order. Stop when the time runs out, and don't skip ahead.
+
+**Must work, in this order**
+
+1. **Read input without crashing.** Accept JSONL, a JSON array, or pretty-printed objects. Return one output per record, and turn a bad record into a safe no-send with a reason.
+2. **Consent and channel.** Pick the first preferred channel the person has opted in to. Skip voice, since it isn't built. If nothing qualifies, don't send and record why.
+3. **Send time.** Use `last_interaction` plus the day number from the task_id (`day3` means +3). If there is no day number, use a stage default. Send at 9:00 local for SMS and 10:00 for email. If that moment has already passed, roll to the next day. Take `now` as an explicit input and state your rule out loud.
+4. **Message content.**
+   - Greet by first name and use the property name.
+   - Personalize from amenity interests and move date.
+   - Map `book_tour` to `schedule_tour`, with reply options for SMS and a link for email.
+   - Add the opt-out line for the channel with fixed wording, not model-generated.
+   - Use templates first. A model-written sentence is optional, and the templates must work without it.
+5. **Next action.** For a new lead, start a cadence, with the short or long horizon name based on days to move-in (threshold around 45). For anyone else, follow up in 3 days.
+6. **Light guards.** Check that the opt-out is present, no phone or email leaks into the body, no protected-class words appear, and a suspicious first name gets replaced with "there."
+7. **Property facts in one place.** Keep amenities, tour days, and tour link in one small file. If a property has no facts, send a generic message with no specific claims.
+8. **Export.** Write a combined output file plus a readable per-record view showing channel, send time, subject, body, and reason.
+
+**Done when**
+- Both samples match on every field you can control, including channel, send time, call to action, and next action. The body should match closely.
+- You have written 8 to 10 extra cases and none crash. Cover no consent, opted out, voice-only, SMS-only, Spanish, a resident persona, missing fields, and an odd name.
+- Running the same input twice gives identical output.
+
+**Skip today**
+Database, login, the three-pane UI, sentiment, reviews, voice, and inbound reply handling. Show them as "designed, not built."
+
+**Demo flow**
+1. Run the two samples.
+2. Show the reasoning behind each field.
+3. Run two or three edge cases live.
+4. Export, then state your assumptions.
+
+If you tell me how many hours remain and whether any code exists, I can trim this list to fit. If you want, I can also draft a rehearsal script for the demo. Neither involves writing code.
+
 ---
 
 # Review 2 of 2 — SME review
@@ -479,3 +517,20 @@ To ensure this core pipeline works seamlessly, tell me:
 **The review 2 addendum (core blueprint) is adopted as the build spec for today,** with one correction: it restates "day0 = +0 days", but the expected `send_at` for `prospect_welcome_day0` is the *next* day at 09:00. The base time plus the offset (09:04 local) is already past the 09:00 send hour, so the send rolls to the next day. The rule is: `candidate = local(last_interaction) + offset days`, set to the send hour; if that is not after `last_interaction`, add one day. This reproduces both samples.
 
 Its closing questions (which provider and model) are answered by D-014: Anthropic Claude, with Haiku 4.5 for speed under the 2 s p95, and Sonnet 5 as an option.
+
+## Merged core build spec (review 1 addendum + review 2 addendum)
+
+The two blueprints agree on the pipeline: ingest → consent/channel gate → send time → content → output. They differ on one point: **how the text is written.**
+
+| | Review 1 | Review 2 | Merged |
+|---|---|---|---|
+| Body text | Templates first; a model sentence is optional | LLM with the samples as few-shot examples | **A template baseline that always works**, plus an optional LLM mode (`--llm`) with the samples as few-shot examples. The LLM writes only the free-text part; the opt-out and CTA are fixed code in both modes. |
+| Determinism | The same input twice gives identical output | Not addressed | Template mode is deterministic. LLM mode uses temperature 0 plus a response cache keyed by the record, so a re-run is identical. |
+| Input formats | JSONL, a JSON array, or pretty-printed objects | JSONL | All three |
+| Send time | `last_interaction` + day N from `task_id`, else a stage default; SMS 09:00, email 10:00; roll forward if passed; explicit `now` | `last_interaction` + offset, to local ISO 8601 | Review 1's rule (the most complete); `now` is optional and used only for the "has it passed" check |
+| `next_action` | New lead → start a cadence (short/long horizon, threshold ~45 days to move-in); otherwise follow up in 3 days | Not specified | Review 1's rule |
+| Guards | Opt-out present, no phone/email in the body, no protected-class words, suspicious name → "there" | Protected-class details removed; fixed STOP gate first | Both |
+| Property facts | One small file; no facts → a generic message with no claims | Not specified | Review 1's rule (`data/properties.yaml`) |
+| Concurrency | Not specified | asyncio, all records in parallel | asyncio in LLM mode (template mode is instant) |
+| Export | Combined output file plus a readable per-record view | `--output results.jsonl` | Both |
+| Done when | Both samples match on the controllable fields; 8–10 extra cases, no crash; deterministic | No crashes on bad rows | Review 1's criteria |
