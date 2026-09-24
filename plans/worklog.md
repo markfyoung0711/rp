@@ -30,6 +30,19 @@ Times are US Central (CDT). Delivery deadline: **2026-09-24, 12:00 noon** (D-021
 | 03:50 | Review 2's reference `bot.py` saved and code-reviewed: it fails sample 1's `send_at` and uses a retired model ID. Kept as a reference, not used as the base | `reference/bot_gemini.py`, G-01 to G-13, D-039; 892fa37 |
 | 03:52 | Issues #1, #2, #4 and #9 closed; this log written | `plans/worklog.md` |
 
+## Phase 3 — Build (core complete)
+
+| When | What | Artifacts |
+|---|---|---|
+| ~03:55 | Scope discussion: what a bot is, the core functionality, the operator's role in the demo, the demo steps | `plans/bot-explainer.md`; demo runbook artifact |
+| ~04:05 | Levels 1/2/3 for unseen records agreed | D-040 |
+| ~04:10 | Project moved to uv | `pyproject.toml`, `uv.lock`; D-041 |
+| 04:15 | Bot core: reader (JSONL / array / pretty-printed; bad records isolated), normalizer (Level 2/3), deterministic decisions, templates with fixed opt-out and CTA, guards, optional LLM writer, CLI. Both samples match every field | `bot.py`, `outreach/`, `config/`; 5e06c7c |
+| 04:18 | 16 edge cases across Levels 1–3, plus 6 pytest tests | `tests/`; 3281bfa |
+| 04:20 | LLM mode fixed and tightened: SDK 1.x has no `temperature` kwarg, strict schema off (+14 s), prompt limited to facts on file; p95 ~1.6 s | D-042; 6eec60f |
+
+**How to run:** `uv run bot.py -i plans/sample.jsonl --compare` · `uv run bot.py -i tests/edge_cases.jsonl` · add `--llm` for model wording · `uv run pytest`.
+
 ## Key outcomes
 
 - **The build spec is D-038:** a stateless batch CLI, JSONL in → one output per record. It has a template baseline plus an optional LLM mode (the samples as few-shot examples). Opt-out wording, CTA and `next_action` are fixed code. Send time = local `last_interaction` + the `dayN` offset, at 09:00 for SMS or 10:00 for email, rolled forward if not after the last interaction. Guards and a property-facts file are included, and the output is deterministic. There is a combined export plus a readable per-record view.
@@ -53,4 +66,4 @@ Times are US Central (CDT). Delivery deadline: **2026-09-24, 12:00 noon** (D-021
 
 ## Next
 
-Build `bot.py` to D-038, then the mock hold-out set, a latency check and a rehearsal.
+Rehearse with the runbook; optional: a plain paste-and-copy web page; review the model-mode wording; update `solution.md` with a "built vs designed" table.
