@@ -41,7 +41,7 @@ The bot reads the first two parts and produces its own version of the third. The
 | `move_date_target` | `2026-01-10` | When they want to move in | Measures **days to move-in**: under 50 → a short sequence, over → a long one. Emails mention it ("mid-January move") |
 | `last_interaction` | `2025-12-08T15:04:00Z` | When they last got in touch, in UTC (the "Z") | The starting point for the send time |
 | `timezone` | `America/Chicago` | Their local time zone | Converts times so messages go out at 9 or 10 a.m. **their** time |
-| `language` | `en` | Their language | English or Spanish templates; other languages fall back to English, with a note |
+| `language` | `en` | Their language | English or Spanish templates, opt-out wording and call scripts; other languages fall back to English, with a note. Spanish opt-out replies (ALTO, BAJA, PARAR, CANCELAR, NO MÁS) stop messages, and Spanish fair-housing terms and banned sales phrases are checked too |
 | `profile.first_name` | `Taylor` | Their first name | Used in the greeting ("Hi Taylor"). The only personal detail that goes in a message |
 | `profile.amenity_interest` | `["pool", "fitness"]` | Features they asked about | Mentioned in the email ("our pool and 24/7 fitness center") |
 | `profile.city_interest` | `Richardson, TX` | The area they're looking in | Not used in the message |

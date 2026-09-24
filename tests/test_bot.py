@@ -358,3 +358,23 @@ def test_unknown_property_is_flagged_per_record_and_per_run():
     assert "gaps" not in run(SAMPLES)[0]["meta"]                               # known property: no gap
     r = subprocess.run(["uv", "run", "bot.py", "--paste"], input=json.dumps(rec), cwd=ROOT, capture_output=True, text=True)
     assert "Config gaps  unknown properties" in r.stdout and "Cedar Point Apartments ×1" in r.stdout
+
+
+def test_spanish_opt_out_and_fair_housing_terms():
+    from outreach import guards
+    for reply in ("ALTO por favor", "quiero darme de BAJA", "no más mensajes", "Cancelar"):
+        rec = json.loads(SAMPLES.splitlines()[0])
+        rec.pop("expected")
+        rec["input"]["language"] = "es"
+        rec["input"]["last_message"] = reply
+        out = run(json.dumps(rec))[0]
+        assert out["next_message"] is None and "opt-out" in out["next_action"]["reason"], reply
+    assert guards.protected_hits("Ideal para familias con niños")          # familia + niño
+    assert guards.protected_hits("cerca de una iglesia")
+    assert any("off-brand" in p for p in guards.check_brand("sms", None, "¡Última oportunidad! Oferta exclusiva", None, None))
+    # the Spanish templates themselves stay clean
+    es = json.loads(SAMPLES.splitlines()[1])
+    es.pop("expected")
+    es["input"]["language"] = "es"
+    out = run(json.dumps(es))[0]
+    assert out["next_message"] and out["meta"]["required_states"]["brand_style_applied"]

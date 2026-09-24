@@ -25,7 +25,9 @@ next_action:
   horizon_threshold_days: 45       # days from send date to move date: <= short, > long
   follow_up_days: 3
 
-stop_keywords: [STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT, OPTOUT, "OPT OUT", REVOKE]
+stop_keywords: [STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT, OPTOUT, "OPT OUT", REVOKE,
+                # Spanish: a reply in the recipient's language must opt out just the same
+                ALTO, PARAR, PARE, BAJA, "DAR DE BAJA", CANCELAR, DETENER, "NO MAS", "NO MÁS", "YA NO"]
 
 # Used when a record has no primary_cta.
 default_cta_by_persona:
@@ -57,7 +59,12 @@ protected_terms: [kid, kids, child, children, baby, babies, pregnan, family size
   religio, church, mosque, synagogue, temple, christian, muslim, jewish, disab, wheelchair,
   handicap, race, racial, ethnic, national origin, immigra, nationality, citizenship,
   gender, sexual orientation, married, single mom, single dad, elderly, senior, retiree,
-  famil, adults only, adult only, no kids, couples, singles, young professionals, empty nester]
+  famil, adults only, adult only, no kids, couples, singles, young professionals, empty nester,
+  # Spanish (stems match plurals and gender forms)
+  niño, niña, hijo, hija, bebé, embaraz, religión, religios, iglesia, mezquita, sinagoga, cristian, musulm,
+  judí, judío, discapacid, silla de ruedas, raza, racial, étnic, origen nacional, inmigra, nacionalidad,
+  ciudadan, género, orientación sexual, casad, soltera, soltero, madre soltera, padre soltero, anciano,
+  tercera edad, jubilad, solo adultos, sin niños, parejas]
 
 # Brand style (the samples' required state "brand_style_applied"). The default applies to any property
 # without its own `brand` block in properties.yaml; a property's block overrides these keys.
@@ -69,7 +76,10 @@ brand_default:
   use_display_name: true       # say "Oak Ridge", not "Oak Ridge Apartments", when a display name exists
   max_voice_words: 75          # a call script of about 30 seconds
   banned_phrases: [act now, limited time, hurry, don't miss out, guaranteed, best deal, cheap, urgent,
-                   last chance, exclusive offer, click here now, luxury living at its finest]
+                   last chance, exclusive offer, click here now, luxury living at its finest,
+                   # Spanish
+                   actúa ya, tiempo limitado, date prisa, no te lo pierdas, garantizado, mejor oferta, barato,
+                   urgente, última oportunidad, oferta exclusiva]
 
 # For properties with no facts file: derive the short display name the samples use ("Oak Ridge", not
 # "Oak Ridge Apartments") by dropping one of these trailing words.
