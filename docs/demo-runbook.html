@@ -1,0 +1,212 @@
+<title>Oak Ridge Bot Demo Runbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#F4F5F1; --surface:#FFFFFF; --ink:#1B2320; --muted:#5C6964; --rule:#DCE1DC;
+  --accent:#2E6A58; --accent-soft:#E3EEE9; --say:#8A5A12; --say-soft:#F6EEDF;
+  --code-bg:#17201D; --code-ink:#DDE7E2; --code-muted:#86A096;
+  --warn:#A2412F; --warn-soft:#F7E7E3;
+  --sans:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#121816; --surface:#1A2320; --ink:#E4EBE7; --muted:#9AABA4; --rule:#2B3833;
+    --accent:#7CC3AA; --accent-soft:#1F3830; --say:#E2B56B; --say-soft:#33291A;
+    --code-bg:#0B100E; --code-ink:#DDE7E2; --code-muted:#7F968D;
+    --warn:#EE9A88; --warn-soft:#3A221D;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#121816; --surface:#1A2320; --ink:#E4EBE7; --muted:#9AABA4; --rule:#2B3833;
+  --accent:#7CC3AA; --accent-soft:#1F3830; --say:#E2B56B; --say-soft:#33291A;
+  --code-bg:#0B100E; --code-ink:#DDE7E2; --code-muted:#7F968D;
+  --warn:#EE9A88; --warn-soft:#3A221D;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6}
+.wrap{max-width:760px;margin:0 auto;padding-inline:20px;padding-block:40px 72px}
+header{display:grid;gap:10px;padding-bottom:24px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:clamp(28px,5vw,38px);line-height:1.15;margin:0;text-wrap:balance;font-weight:700;letter-spacing:-.01em}
+.lede{margin:0;color:var(--muted);max-width:62ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.pill{font:500 12.5px/1 var(--mono);padding:7px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+h2{font-size:21px;line-height:1.3;margin:44px 0 12px;text-wrap:balance}
+h3{font-size:17px;margin:0;line-height:1.35}
+p{margin:0 0 12px;max-width:66ch}
+.muted{color:var(--muted)}
+.note{background:var(--warn-soft);color:var(--ink);border-radius:8px;padding:12px 14px;font-size:15px;margin:18px 0 0}
+.note strong{color:var(--warn)}
+ul.check{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+ul.check li{display:flex;gap:10px;align-items:flex-start}
+ul.check input{margin-top:5px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+ol.steps{list-style:none;padding:0;margin:0;counter-reset:s;display:grid;gap:0}
+ol.steps>li{counter-increment:s;display:grid;grid-template-columns:40px 1fr;gap:4px 14px;padding:22px 0;border-top:1px solid var(--rule)}
+ol.steps>li:first-child{border-top:0;padding-top:6px}
+ol.steps>li::before{content:counter(s);font:600 15px/1 var(--mono);color:var(--accent);border:1.5px solid var(--accent);border-radius:50%;width:32px;height:32px;display:grid;place-items:center;margin-top:-2px}
+.step-body{display:grid;gap:10px;min-width:0}
+.tag{font:600 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.cmd{min-width:0;max-width:100%;position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:8px;font:14px/1.55 var(--mono);display:flex;align-items:flex-start;gap:8px;padding:12px 12px 12px 14px}
+.cmd pre{margin:0;overflow-x:auto;flex:1;min-width:0;white-space:pre}
+.cmd pre::before{content:"$ ";color:var(--code-muted)}
+.cmd button{flex:none;font:500 12px/1 var(--mono);background:transparent;color:var(--code-muted);border:1px solid #34443E;border-radius:6px;padding:7px 9px;cursor:pointer}
+.cmd button:hover{color:var(--code-ink);border-color:var(--code-muted)}
+.cmd button:focus-visible,.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.say{background:var(--say-soft);border-radius:8px;padding:12px 14px}
+.say .tag{color:var(--say)}
+.say p{margin:0;font-style:italic}
+.show{color:var(--muted);font-size:15px;margin:0}
+.show b{color:var(--ink);font-weight:600}
+.alt{display:grid;gap:10px;grid-template-columns:1fr}
+.alt>div{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:12px;display:grid;gap:8px;align-content:start;min-width:0}
+.alt h4{margin:0;font-size:14px}
+.tablewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:10px 12px;border-top:1px solid var(--rule);vertical-align:top}
+thead th{border-top:0;font:600 12px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--ground)}
+td:first-child{font-weight:600;min-width:160px}
+th.grp{background:var(--accent-soft);color:var(--accent);font:600 12px/1.3 var(--mono);letter-spacing:.05em;text-transform:uppercase}
+code{font:13.5px var(--mono);background:var(--accent-soft);color:var(--ink);padding:1px 5px;border-radius:4px}
+td.t-num{min-width:0;font:600 12px var(--mono);color:var(--muted);white-space:nowrap}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.roles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.roles>div{border:1px solid var(--rule);border-radius:8px;padding:12px 14px;background:var(--surface)}
+.roles .you{border-color:var(--accent);background:var(--accent-soft)}
+.roles b{display:block;margin-bottom:2px}
+.roles span{color:var(--muted);font-size:14.5px}
+ol.plain{margin:0;padding-left:22px;display:grid;gap:6px}
+footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);color:var(--muted);font-size:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">RealPage interview · operator runbook</div>
+  <h1>Demo runbook: the leasing-outreach bot</h1>
+  <p class="lede">What you type, what you show and what you say, in order. The bot is a command-line tool: records in, one decision per record out. Template mode is free, offline and deterministic.</p>
+  <div class="meta">
+    <span class="pill">Deadline 12:00 noon CT, Sep 24</span>
+    <span class="pill">Hold-out: 12 unseen records</span>
+    <span class="pill">v0.2 · samples match every field</span>
+    <span class="pill">$0 API cost by default</span>
+  </div>
+</header>
+
+<h2>Your role</h2>
+<div class="roles">
+  <div class="you"><b>You: the operator</b><span>You run the bot, show its decisions and explain why.</span></div>
+  <div><b>The bot</b><span>A decision service: send or not, channel, time, words, next step. <code>task_id</code> in, <code>task_id</code> out.</span></div>
+  <div><b>Taylor and friends</b><span>Prospects and residents who appear only as records.</span></div>
+  <div><b>The interviewer</b><span>The tester who hands you the 12 hold-out records.</span></div>
+</div>
+
+<h2>Before the interview</h2>
+<ul class="check">
+  <li><input type="checkbox" id="pre1"><label for="pre1">Terminal open in <code>~/realpage</code>; font large enough to screen-share.</label></li>
+  <li><input type="checkbox" id="pre2"><label for="pre2">Run <code>uv run python scripts/run_checks.py --full</code>: expect <b>29/29 passed</b>.</label></li>
+  <li><input type="checkbox" id="pre3"><label for="pre3">Run step 1 once; keep <code>out/</code> files from a dry run as a backup.</label></li>
+  <li><input type="checkbox" id="pre4"><label for="pre4"><code>README.md</code> and <code>plans/solution.md</code> open for the “designed, not built” part.</label></li>
+  <li><input type="checkbox" id="pre5"><label for="pre5">Read the assumptions below out loud once.</label></li>
+</ul>
+
+<h2>During the demo</h2>
+<ol class="steps">
+  <li><div class="step-body">
+    <h3>Show it works on the two samples</h3>
+    <div class="cmd"><pre>uv run bot.py -i plans/sample.jsonl --compare</pre><button type="button" data-copy>Copy</button></div>
+    <p class="show"><b>On screen:</b> each decision with its reasons, ✅ per field, then <b>RUN STATS</b>: decisions, latency vs the 2,000 ms p95 target, safety, PII redacted, API cost $0, and “Controllable fields … all match: 2/2”.</p>
+    <div class="say"><div class="tag">Say</div><p>“Every field matches both samples. Channel, send time, CTA, opt-out and next action are code; only the wording could come from a model, and by default it’s a template, so it’s free and deterministic.”</p></div>
+  </div></li>
+  <li><div class="step-body">
+    <h3>Explain one decision</h3>
+    <div class="cmd"><pre>uv run bot.py -i plans/sample.jsonl --only day0</pre><button type="button" data-copy>Copy</button></div>
+    <div class="say"><div class="tag">Say</div><p>“SMS is Taylor’s first preferred channel with consent. Last contact Dec 8 at 09:04 plus day 0 at the 09:00 SMS hour has passed, so it rolls to Dec 9 at 09:00. New lead, 32 days to move-in, under 45, so the short-horizon welcome sequence.”</p></div>
+  </div></li>
+  <li><div class="step-body">
+    <h3>Show two or three anticipated cases</h3>
+    <div class="cmd"><pre>uv run bot.py -i tests/edge_cases.jsonl --only kids</pre><button type="button" data-copy>Copy</button></div>
+    <div class="cmd"><pre>uv run bot.py -i tests/garbage_inputs.txt</pre><button type="button" data-copy>Copy</button></div>
+    <div class="cmd"><pre>uv run bot.py -i tests/pii_cases.jsonl</pre><button type="button" data-copy>Copy</button></div>
+    <p class="show"><b>Point at:</b> fair housing (same message) · messy paste (13 of 14 recovered) · <b>PII redacted 81, leaked 0</b>. The full list is below.</p>
+  </div></li>
+  <li><div class="step-body">
+    <h3>Run their 12 hold-out records</h3>
+    <div class="alt">
+      <div><h4>They send a file</h4><p class="show">Save it as <code>holdout.jsonl</code>, then:</p><div class="cmd"><pre>uv run bot.py -i holdout.jsonl -o out/holdout.jsonl</pre><button type="button" data-copy>Copy</button></div><p class="show">Add <code>--compare</code> if their records include <code>expected</code>: that’s your live score.</p></div>
+      <div><h4>They paste text</h4><p class="show">Paste, then <code>Ctrl+D</code>. JSONL, a JSON list, pretty-printed or chat-style text all work.</p><div class="cmd"><pre>uv run bot.py --paste -o out/holdout.jsonl</pre><button type="button" data-copy>Copy</button></div></div>
+    </div>
+    <p class="show"><b>If something looks odd:</b> nothing crashes. The bot outputs a no-send with a reason, and the warnings say what was repaired or assumed.</p>
+  </div></li>
+  <li><div class="step-body">
+    <h3>Hand over the 12 outputs</h3>
+    <p class="show">Send <code>out/holdout.jsonl</code>, or copy the block between <code>=== BEGIN OUTPUT ===</code> and <code>=== END OUTPUT ===</code>. One line per record: <code>task_id</code>, <code>next_message</code> (or null), <code>next_action</code>, <code>why</code>, <code>meta</code>.</p>
+  </div></li>
+  <li><div class="step-body">
+    <h3>Talk track: assumptions, then the roadmap</h3>
+    <p class="show">State the assumptions below, then open <code>plans/solution.md</code> for what’s designed but not built: owner, support and renter views, database, login, sentiment, review sites, real SMS/email sending, reply handling.</p>
+  </div></li>
+</ol>
+
+<h2>Tests you can run to show what was anticipated</h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>#</th><th>Command</th><th>What it shows</th></tr></thead>
+  <tbody><tr><th colspan="3" class="grp">The graded core</th></tr><tr><td class="t-num">1</td><td><code>uv run bot.py -i plans/sample.jsonl --compare</code></td><td>Both samples match every field (✅ per field) and RUN STATS</td></tr><tr><td class="t-num">2</td><td><code>uv run bot.py -i plans/sample.jsonl --only day0</code></td><td>The “why” trail for one decision</td></tr><tr><td class="t-num">3</td><td><code>uv run bot.py -i plans/sample.jsonl -o out/a.jsonl --quiet</code></td><td>Run twice to <code>out/a</code> and <code>out/b</code>, then <code>cmp</code>: byte-identical</td></tr><tr><th colspan="3" class="grp">Cases the samples don’t show</th></tr><tr><td class="t-num">4</td><td><code>uv run bot.py -i tests/edge_cases.jsonl --only no_consent</code></td><td>No consent → no send, with a reason</td></tr><tr><td class="t-num">5</td><td><code>uv run bot.py -i tests/edge_cases.jsonl --only sms_preferred</code></td><td>Preferred channel not allowed → falls back to email</td></tr><tr><td class="t-num">6</td><td><code>uv run bot.py -i tests/edge_cases.jsonl --only voice_only</code></td><td>Voice not built → no send, “not supported yet”</td></tr><tr><td class="t-num">7</td><td><code>uv run bot.py -i tests/edge_cases.jsonl --only inbound_stop</code></td><td>STOP → no send, no model call</td></tr><tr><td class="t-num">8</td><td><code>uv run bot.py -i tests/edge_cases.jsonl --only kids</code></td><td>“4 kids” profile → same message as anyone (fair housing)</td></tr><tr><td class="t-num">9</td><td><code>uv run bot.py -i tests/edge_cases.jsonl --only injection</code></td><td>Injection in the name → “Hi there”</td></tr><tr><td class="t-num">10</td><td><code>uv run bot.py -i tests/edge_cases.jsonl --only resident_pay_rent</code></td><td>Resident → rent reminder, no amount</td></tr><tr><td class="t-num">11</td><td><code>uv run bot.py -i tests/edge_cases.jsonl --only renewal_es</code></td><td>Spanish renewal, no price</td></tr><tr><td class="t-num">12</td><td><code>uv run bot.py -i tests/edge_cases.jsonl --only unknown_property</code></td><td>No facts on file → no invented claims</td></tr><tr><th colspan="3" class="grp">Unseen record types (Levels 1–3)</th></tr><tr><td class="t-num">15</td><td><code>uv run bot.py -i tests/edge_cases.jsonl --only level2_formats</code></td><td>Level 2: list consent, “text, e-mail”, “Central” → handled, noted</td></tr><tr><td class="t-num">17</td><td><code>uv run bot.py -i tests/edge_cases.jsonl --only MNT</code></td><td>Level 3: a maintenance ticket in another shape → confidence low</td></tr><tr><td class="t-num">18</td><td><code>uv run bot.py -i tests/edge_cases.jsonl --only MISC</code></td><td>Level 3, no consent → human review</td></tr><tr><td class="t-num">19</td><td><code>uv run bot.py -i tests/edge_cases.jsonl --only malformed</code></td><td>Broken line → reported; the rest still run</td></tr><tr><th colspan="3" class="grp">Personal data</th></tr><tr><td class="t-num">19b</td><td><code>uv run bot.py -i tests/pii_cases.jsonl</code></td><td>20 rental-PII categories planted → 81 withheld, 0 leaked (PII redacted line)</td></tr><tr><th colspan="3" class="grp">Messy input</th></tr><tr><td class="t-num">20</td><td><code>uv run bot.py -i tests/garbage_inputs.txt</code></td><td>Chat-style paste → 13 of 14 recovered, each repair noted</td></tr><tr><td class="t-num">21</td><td><code>uv run bot.py -i tests/garbage_utf16.jsonl</code></td><td>Windows UTF-16 export → decoded</td></tr><tr><td class="t-num">22</td><td><code>uv run bot.py -i tests/not_records.png</code></td><td>An image → clear refusal, exit 2, no fake records</td></tr><tr><th colspan="3" class="grp">Scale, cost and the AI option</th></tr><tr><td class="t-num">24</td><td><code>uv run bot.py -i tests/perf_100.jsonl</code></td><td>100 records in ~0.2 s</td></tr><tr><td class="t-num">25</td><td><code>uv run bot.py -i tests/edge_cases.jsonl --llm</code></td><td>Cost guard: stops (exit 3) and shows the dollars avoided</td></tr><tr><td class="t-num">25b</td><td><code>uv run bot.py -i plans/sample.jsonl --llm --budget 0.001</code></td><td>Over the spending limit → stops and shows the overage</td></tr><tr><th colspan="3" class="grp">Whole-system checks</th></tr><tr><td class="t-num">27</td><td><code>uv run pytest</code></td><td>14 tests</td></tr><tr><td class="t-num">28</td><td><code>uv run python scripts/run_checks.py --full</code></td><td>The code-review checklist, automated (29 checks)</td></tr></tbody>
+</table></div>
+<p class="muted" style="margin-top:10px">Full list: <code>plans/demo-tests.md</code>. Suggested live order: 1 → 2 → 8 → 4 → 17 → 20 → 19b → 22, then the hold-out.</p>
+
+<h2>AI wording and cost</h2>
+<ul class="check">
+  <li><input type="checkbox" id="c1"><label for="c1"><b>Default: template mode.</b> $0, offline, deterministic; matches the samples word for word. Use it for the graded run.</label></li>
+  <li><input type="checkbox" id="c2"><label for="c2"><b><code>--llm</code></b> has Claude write only the friendly sentence, with the samples as examples. If that would cost anything, the bot <b>stops</b> and shows the calls, tokens and dollars avoided.</label></li>
+  <li><input type="checkbox" id="c3"><label for="c3"><b>Spending limit:</b> <code>--budget 0.10</code> (or <code>BOT_LLM_BUDGET_USD=0.10</code>) runs quietly within the limit and stops above it. Cached re-runs cost $0.</label></li>
+</ul>
+
+<h2>Assumptions to say out loud</h2>
+<ol class="plain">
+  <li><b>Send time</b> = last contact + the day number in the task ID, at 09:00 for SMS or 10:00 for email, moved to the next day if already past. Inferred from two samples; configurable.</li>
+  <li><b>Channel</b> = the first preferred channel with consent. Voice is modeled, not built.</li>
+  <li><b>Next action:</b> a new lead starts a sequence (short if ≤ 45 days to move-in, else long); anyone else gets a follow-up in 3 days.</li>
+  <li><b>Property details</b> come from one config file, never invented.</li>
+  <li><b>No-send shape</b> (<code>next_message: null</code> plus a reason) is my choice; the spec doesn’t define one.</li>
+  <li><b>Personal data:</b> only the first name, in the greeting. <code>task_id</code> is the only join key; identity belongs to the system of record.</li>
+</ol>
+
+<h2>Likely gotchas and quick answers</h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>They ask</th><th>You answer</th></tr></thead>
+  <tbody>
+    <tr><td>“Is this an AI agent?”</td><td>“An autonomous decision pipeline. Compliance-critical decisions are deterministic code; a model may write only the wording.”</td></tr>
+    <tr><td>“Is it really learning?”</td><td>“The rules were inferred from the data and made configurable; in <code>--llm</code> mode the samples are few-shot examples for the wording.”</td></tr>
+    <tr><td>“A record type you’ve never seen?”</td><td>Levels 1–3: new values hit default rows; odd formats are repaired and noted; unknown shapes are searched for fields, with confidence low. No consent → never send.</td></tr>
+    <tr><td>“What about PII?”</td><td>“Only the first name leaves the bot. Twenty rental-PII categories are tested: 81 withheld, 0 leaked. Balances and account numbers never go in a message.”</td></tr>
+    <tr><td>“What if Anthropic is down?”</td><td>“Template mode never calls it. With <code>--llm</code>, each record falls back to the template; decisions are identical.”</td></tr>
+    <tr><td>“100,000 records?”</td><td>“52 s in template mode at $0. With <code>--llm</code>, about $170 on Haiku, or $85 via the Batch API; the bot shows that and stops first.”</td></tr>
+    <tr><td>“Change a rule live?”</td><td>“Rules live in <code>config/rules.yaml</code>: one row, re-run.”</td></tr>
+  </tbody>
+</table></div>
+
+<h2>If something breaks</h2>
+<ul class="check">
+  <li><input type="checkbox" id="b1"><label for="b1"><b>No network:</b> nothing changes. Template mode needs none.</label></li>
+  <li><input type="checkbox" id="b2"><label for="b2"><b>Anything else live:</b> show the pre-run <code>out/</code> files and explain calmly. Handling a surprise well is part of what’s tested.</label></li>
+</ul>
+
+<footer>Repo markfyoung0711/rp · README.md, plans/demo-tests.md, plans/decisions.md (D-001 to D-048). This page is also versioned at docs/demo-runbook.html.</footer>
+</div>
+
+<script>
+document.querySelectorAll('[data-copy]').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    var pre=btn.parentElement.querySelector('pre');var text=pre.textContent;
+    function done(){btn.textContent='Copied';setTimeout(function(){btn.textContent='Copy'},1400)}
+    function fallback(){var r=document.createRange();r.selectNodeContents(pre);var s=window.getSelection();s.removeAllRanges();s.addRange(r);btn.textContent='Selected'}
+    try{navigator.clipboard.writeText(text).then(done,fallback)}catch(e){fallback()}
+  });
+});
+</script>
