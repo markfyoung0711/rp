@@ -9,6 +9,7 @@ opt_out:
 
 days: [lunes, martes, miércoles, jueves, viernes, sábado, domingo]
 days_short: [lun, mar, mié, jue, vie, sáb, dom]
+reply_days: [lunes, martes, miércoles, jueves, viernes, sábado, domingo]   # labels in reply codes and CTA options
 months: [enero, febrero, marzo, abril, mayo, junio, julio, agosto, septiembre, octubre, noviembre, diciembre]
 move_timing: {early: "principios de {month}", mid: "mediados de {month}", late: "finales de {month}"}
 article_an_before_vowel: false
@@ -22,7 +23,7 @@ voice_intro_default: "le llamamos de {prop}"
 
 tour:
   sms_greeting_new: "te damos la bienvenida a"
-  sms_greeting_other: "te damos la bienvenida a"
+  sms_greeting_other: "gracias por tu interés en"
   sms_slots: "Hola {name}, ¡{greeting} {prop}! Hay visitas disponibles {when}. ¿Te gustaría reservar el {days}?"
   sms_code: "{n} para {short}"
   sms_slots_tail: "Responde {codes}. {opt_out}"

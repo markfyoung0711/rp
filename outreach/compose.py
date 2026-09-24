@@ -174,6 +174,7 @@ def _tour(case, channel, send_at, t, lang, name, prop, facts, link, oo, rule) ->
         this_week = all(d.isocalendar()[1] == send_at.date().isocalendar()[1] for _, d in slots)
         when = t["this_week"] if this_week else t["coming_days"]
         days = t["join_or"].join(full)
+    reply = t.get("reply_days") or t["days_short"]      # day labels in reply codes and CTA options
     if channel == "voice":
         # Automated call script: the same offer as SMS, with keypad choices instead of reply codes.
         intro = voice_intro(facts, prop, lang)
@@ -181,7 +182,7 @@ def _tour(case, channel, send_at, t, lang, name, prop, facts, link, oo, rule) ->
             core = tt["voice_slots"].format(name=name, intro=intro, when=when, days=days)
             keys = ", ".join(tt["voice_key"].format(n=i + 1, day=f) for i, f in enumerate(full))
             tail = tt["voice_slots_tail"].format(keys=keys, opt_out=oo)
-            cta["options"] = [s for s, _ in slots]
+            cta["options"] = [reply[d.weekday()] for _, d in slots]
             return Draft(None, core, tail, cta, bool(facts), full)
         core = tt["voice_noslot"].format(name=name, intro=intro)
         tail = tt["voice_noslot_tail"].format(opt_out=oo)
@@ -191,10 +192,10 @@ def _tour(case, channel, send_at, t, lang, name, prop, facts, link, oo, rule) ->
         if slots:
             greeting = tt["sms_greeting_new"] if case.stage == "new" else tt["sms_greeting_other"]
             core = tt["sms_slots"].format(name=name, greeting=greeting, prop=prop, when=when, days=days)
-            codes = ", ".join(tt["sms_code"].format(n=i + 1, code=s, short=t["days_short"][d.weekday()])
+            codes = ", ".join(tt["sms_code"].format(n=i + 1, code=s, short=reply[d.weekday()])
                               for i, (s, d) in enumerate(slots))
             tail = tt["sms_slots_tail"].format(codes=codes, opt_out=oo)
-            cta["options"] = [s for s, _ in slots]
+            cta["options"] = [reply[d.weekday()] for _, d in slots]
             return Draft(None, core, tail, cta, bool(facts), full)
         core = tt["sms_noslot"].format(name=name, prop=prop)
         tail = tt["sms_noslot_tail"].format(opt_out=oo)

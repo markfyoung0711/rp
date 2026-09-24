@@ -174,6 +174,8 @@ def validate_template(lang: str, t: dict) -> list[str]:
     for k, n in (("days", 7), ("days_short", 7), ("months", 12)):
         if not (isinstance(t.get(k), list) and len(t[k]) == n):
             p.append(f"{where}: {k} must list {n} names")
+    if "reply_days" in t and not (isinstance(t["reply_days"], list) and len(t["reply_days"]) == 7):
+        p.append(f"{where}: reply_days, if set, must list 7 names")
     for key in ("early", "mid", "late"):
         if "{month}" not in str((t.get("move_timing") or {}).get(key, "")):
             p.append(f"{where}: move_timing.{key} must contain {{month}}")
