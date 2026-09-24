@@ -96,6 +96,19 @@ def test_byte_level_garbage_never_raises():
     utf16 = (ROOT / "tests" / "garbage_utf16.jsonl").read_bytes()
     text, notes = decode_bytes(utf16)
     assert len(read_batch(text).records) == 2 and notes
+    from outreach.reader import UnsupportedInput
     for blob in (os.urandom(4000), b"\xff\xfe\x00junk\x80", b"", b"[" * 50000, "{\u201ctask_id\u201d: 1}".encode("cp1252", "replace")):
-        text, _ = decode_bytes(blob)
+        try:
+            text, _ = decode_bytes(blob)
+        except UnsupportedInput:
+            continue               # refused cleanly is fine; raising anything else is not
         read_batch(text)   # must not raise
+
+
+def test_images_and_archives_are_refused_clearly():
+    import pytest
+    from outreach.reader import UnsupportedInput, decode_bytes
+    for blob, word in ((b"\x89PNG\r\n\x1a\n" + bytes(200), "PNG"), (b"%PDF-1.7 ...", "PDF"),
+                       (b"PK\x03\x04" + bytes(50), "ZIP"), (b"\xff\xd8\xff\xe0" + bytes(50), "JPEG")):
+        with pytest.raises(UnsupportedInput, match=word):
+            decode_bytes(blob)

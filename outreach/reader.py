@@ -41,25 +41,49 @@ class Batch:
     notes: list = field(default_factory=list)      # batch-level notes (ignored text, decoding, ...)
 
 
+class UnsupportedInput(Exception):
+    """The input is not text records at all (an image, a PDF, an archive, binary data)."""
+
+
+MAGIC = [(b"\x89PNG\r\n\x1a\n", "a PNG image"), (b"\xff\xd8\xff", "a JPEG image"), (b"GIF8", "a GIF image"),
+         (b"RIFF", "a WebP/RIFF file"), (b"%PDF", "a PDF document"), (b"PK\x03\x04", "a ZIP archive (or .docx/.xlsx)"),
+         (b"\x1f\x8b", "a gzip archive"), (b"\xd0\xcf\x11\xe0", "a legacy Office document"), (b"BM", None)]
+
+
+def _mostly_text(text: str) -> bool:
+    if not text:
+        return True
+    sample = text[:4000]
+    bad = sum(1 for ch in sample if (ord(ch) < 32 and ch not in "\t\n\r") or ch == "\ufffd"
+              or 0xE000 <= ord(ch) <= 0xF8FF)
+    return bad / len(sample) < 0.05
+
+
 def decode_bytes(data: bytes) -> tuple[str, list[str]]:
-    """Bytes to text, whatever the encoding. Never raises."""
+    """Bytes to text, whatever the encoding. Raises UnsupportedInput for images, archives and binary data."""
+    for magic, kind in MAGIC:
+        if kind and data.startswith(magic):
+            raise UnsupportedInput(f"the input is {kind}, not JSON records")
     notes: list[str] = []
     if data.startswith((b"\xff\xfe", b"\xfe\xff")):
+        text = data.decode("utf-16", errors="replace")
         notes.append("input was UTF-16; decoded")
-        return data.decode("utf-16", errors="replace"), notes
-    if data[:200].count(b"\x00") > 20:              # UTF-16 without a BOM
+    elif len(data) >= 4 and data[1:200:2].count(0) > 0.4 * len(data[1:200:2]) and data[0:200:2].count(0) < 3:
+        text = data.decode("utf-16-le", errors="replace")          # UTF-16 without a BOM: ASCII + NUL pairs
         notes.append("input looked like UTF-16 without a BOM; decoded")
-        return data.decode("utf-16-le", errors="replace"), notes
-    try:
-        return data.decode("utf-8-sig"), notes
-    except UnicodeDecodeError:
+    else:
         try:
-            text = data.decode("cp1252")
-            notes.append("input was not UTF-8; decoded as Windows-1252")
-            return text, notes
+            text = data.decode("utf-8-sig")
         except UnicodeDecodeError:
-            notes.append("input had invalid bytes; replaced with �")
-            return data.decode("utf-8", errors="replace"), notes
+            try:
+                text = data.decode("cp1252")
+                notes.append("input was not UTF-8; decoded as Windows-1252")
+            except UnicodeDecodeError:
+                text = data.decode("utf-8", errors="replace")
+                notes.append("input had invalid bytes; replaced with \ufffd")
+    if not _mostly_text(text):
+        raise UnsupportedInput("the input looks like binary data, not JSON records")
+    return text, notes
 
 
 def _looks_like_record(d: dict) -> bool:

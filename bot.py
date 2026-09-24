@@ -15,7 +15,7 @@ from pathlib import Path
 
 from outreach.llm import DEFAULT_MODEL
 from outreach.pipeline import process
-from outreach.reader import ReadError, decode_bytes, read_batch
+from outreach.reader import ReadError, UnsupportedInput, decode_bytes, read_batch
 
 FIELDS = ["channel", "send_at", "subject", "body", "cta", "next_action"]
 
@@ -86,14 +86,19 @@ def main() -> None:
     ap.add_argument("--quiet", action="store_true", help="print only the JSONL block")
     args = ap.parse_args()
 
-    if args.paste:
-        print("Paste records, then press Ctrl+D (Ctrl+Z then Enter on Windows):", file=sys.stderr)
-        text, notes = decode_bytes(sys.stdin.buffer.read())
-    else:
-        path = Path(args.input)
-        if not path.is_file():
-            sys.exit(f"Input file not found: {path}")
-        text, notes = decode_bytes(path.read_bytes())
+    try:
+        if args.paste:
+            print("Paste records, then press Ctrl+D (Ctrl+Z then Enter on Windows):", file=sys.stderr)
+            text, notes = decode_bytes(sys.stdin.buffer.read())
+        else:
+            path = Path(args.input)
+            if not path.is_file():
+                sys.exit(f"Input file not found: {path}")
+            text, notes = decode_bytes(path.read_bytes())
+    except UnsupportedInput as e:
+        print(f"Cannot read input: {e}. Nothing was processed.", file=sys.stderr)
+        print("Provide the records as text: JSONL, a JSON array, or pasted JSON objects.", file=sys.stderr)
+        sys.exit(2)
     batch = read_batch(text)
     records = batch.records
     for note in notes + batch.notes:
