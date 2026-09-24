@@ -226,7 +226,7 @@ plans/                  spec, design, decisions, reviews, documentation
 <h2>"How do you measure it?"</h2>
 <h3 class="q">How do you evaluate the output?</h3><p class="a">"Controllable fields (channel, send time, call to action, next action) must match exactly. The wording is scored by similarity, because the spec says 'semantically matches'. Both samples: every field exact."
 <span class="prove">To prove, run:</span> <code class="run">uv run bot.py -i plans/sample.jsonl --compare</code></p>
-<h3 class="q">What's p95 latency?</h3><p class="a">"95% of records finish within this time. The target in the data is 2 seconds. Template mode: under 1 millisecond. With the LLM: about 1.5 seconds per call."</p>
+<h3 class="q">What's p95 latency?</h3><p class="a">"95% of records finish within this time. The target in the data is 2 seconds. Template mode: about a millisecond per record, and about 10 milliseconds for the very first one while it warms up. With the LLM: about 1.5 seconds per call."</p>
 <h3 class="q">What can't you measure?</h3><p class="a">"The data sets <code>personalization_score_min</code> and <code>reply_classification_f1_min</code>, but the spec gives no scoring method and there are no replies to classify. The stats say 'not measured' rather than pretend."</p>
 <hr />
 <h2>"Is it safe and fair?"</h2>

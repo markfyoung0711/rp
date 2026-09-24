@@ -1,0 +1,183 @@
+<title>Outreach Bot Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#F4F5F1; --surface:#FFFFFF; --ink:#1B2320; --muted:#5C6964; --rule:#DCE1DC;
+  --accent:#2E6A58; --accent-soft:#E3EEE9; --say:#8A5A12; --say-soft:#F6EEDF;
+  --code-bg:#17201D; --code-ink:#DDE7E2; --code-muted:#86A096;
+  --warn:#A2412F; --warn-soft:#F7E7E3;
+  --sans:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#121816; --surface:#1A2320; --ink:#E4EBE7; --muted:#9AABA4; --rule:#2B3833;
+    --accent:#7CC3AA; --accent-soft:#1F3830; --say:#E2B56B; --say-soft:#33291A;
+    --code-bg:#0B100E; --code-ink:#DDE7E2; --code-muted:#7F968D;
+    --warn:#EE9A88; --warn-soft:#3A221D;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#121816; --surface:#1A2320; --ink:#E4EBE7; --muted:#9AABA4; --rule:#2B3833;
+  --accent:#7CC3AA; --accent-soft:#1F3830; --say:#E2B56B; --say-soft:#33291A;
+  --code-bg:#0B100E; --code-ink:#DDE7E2; --code-muted:#7F968D;
+  --warn:#EE9A88; --warn-soft:#3A221D;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6}
+.wrap{max-width:760px;margin:0 auto;padding-inline:20px;padding-block:40px 72px}
+header{display:grid;gap:10px;padding-bottom:24px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:clamp(28px,5vw,38px);line-height:1.15;margin:0;text-wrap:balance;font-weight:700;letter-spacing:-.01em}
+.lede{margin:0;color:var(--muted);max-width:62ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.pill{font:500 12.5px/1 var(--mono);padding:7px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+h2{font-size:21px;line-height:1.3;margin:44px 0 12px;text-wrap:balance}
+h3{font-size:17px;margin:0;line-height:1.35}
+p{margin:0 0 12px;max-width:66ch}
+.muted{color:var(--muted)}
+.note{background:var(--warn-soft);color:var(--ink);border-radius:8px;padding:12px 14px;font-size:15px;margin:18px 0 0}
+.note strong{color:var(--warn)}
+ul.check{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+ul.check li{display:flex;gap:10px;align-items:flex-start}
+ul.check input{margin-top:5px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+ol.steps{list-style:none;padding:0;margin:0;counter-reset:s;display:grid;gap:0}
+ol.steps>li{counter-increment:s;display:grid;grid-template-columns:40px 1fr;gap:4px 14px;padding:22px 0;border-top:1px solid var(--rule)}
+ol.steps>li:first-child{border-top:0;padding-top:6px}
+ol.steps>li::before{content:counter(s);font:600 15px/1 var(--mono);color:var(--accent);border:1.5px solid var(--accent);border-radius:50%;width:32px;height:32px;display:grid;place-items:center;margin-top:-2px}
+.step-body{display:grid;gap:10px;min-width:0}
+.tag{font:600 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.cmd{min-width:0;max-width:100%;position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:8px;font:14px/1.55 var(--mono);display:flex;align-items:flex-start;gap:8px;padding:12px 12px 12px 14px}
+.cmd pre{margin:0;overflow-x:auto;flex:1;min-width:0;white-space:pre}
+.cmd pre::before{content:"$ ";color:var(--code-muted)}
+.cmd button{flex:none;font:500 12px/1 var(--mono);background:transparent;color:var(--code-muted);border:1px solid #34443E;border-radius:6px;padding:7px 9px;cursor:pointer}
+.cmd button:hover{color:var(--code-ink);border-color:var(--code-muted)}
+.cmd button:focus-visible,.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.say{background:var(--say-soft);border-radius:8px;padding:12px 14px}
+.say .tag{color:var(--say)}
+.say p{margin:0;font-style:italic}
+.show{color:var(--muted);font-size:15px;margin:0}
+.show b{color:var(--ink);font-weight:600}
+.alt{display:grid;gap:10px;grid-template-columns:1fr}
+.alt>div{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:12px;display:grid;gap:8px;align-content:start;min-width:0}
+.alt h4{margin:0;font-size:14px}
+.tablewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:10px 12px;border-top:1px solid var(--rule);vertical-align:top}
+thead th{border-top:0;font:600 12px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--ground)}
+td:first-child{font-weight:600;min-width:160px}
+th.grp{background:var(--accent-soft);color:var(--accent);font:600 12px/1.3 var(--mono);letter-spacing:.05em;text-transform:uppercase}
+code{font:13.5px var(--mono);background:var(--accent-soft);color:var(--ink);padding:1px 5px;border-radius:4px}
+td.t-num{min-width:0;font:600 12px var(--mono);color:var(--muted);white-space:nowrap}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.roles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.roles>div{border:1px solid var(--rule);border-radius:8px;padding:12px 14px;background:var(--surface)}
+.roles .you{border-color:var(--accent);background:var(--accent-soft)}
+.roles b{display:block;margin-bottom:2px}
+.roles span{color:var(--muted);font-size:14.5px}
+ol.plain{margin:0;padding-left:22px;display:grid;gap:6px}
+footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);color:var(--muted);font-size:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+h3.q{font-size:16.5px;margin:26px 0 6px;color:var(--ink)}
+h3.q::before{content:"Q  ";font:600 12px var(--mono);color:var(--accent)}
+p.a{margin:0 0 6px}
+.prove{font:600 12px var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--accent)}
+code.run{display:inline-block;margin-top:4px;background:var(--code-bg);color:var(--code-ink);padding:4px 8px;border-radius:6px;font-size:13px;overflow-wrap:anywhere}
+hr{border:0;border-top:1px solid var(--rule);margin:36px 0 8px}
+pre.mermaid{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:16px;overflow-x:auto;text-align:center}
+ul{padding-left:22px}
+td:first-child{min-width:130px}
+pre:not(.mermaid){background:var(--code-bg);color:var(--code-ink);border-radius:8px;padding:14px;overflow-x:auto;font:13px/1.5 var(--mono)}
+pre:not(.mermaid) code{background:none;color:inherit;padding:0}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:8px}
+.stat{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:12px 14px}
+.stat b{display:block;font:700 22px/1.2 var(--sans);color:var(--accent);font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:14px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:14px;color:var(--muted);margin-top:8px}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Leasing outreach decision bot</div>
+  <h1>How it’s designed</h1>
+  <p class="lede">For each record, the bot decides whether to contact the person, on which channel, when, and what to say, plus the next step. Code makes every compliance-critical decision; the rules are learned from labelled examples; AI is optional and only writes the wording.</p>
+</header>
+
+<h2>Results at a glance</h2>
+<div class="stats"><div class="stat"><b>2 / 2</b><span>samples match on every field</span></div><div class="stat"><b>120 / 120</b><span>consent × channel cases match the policy</span></div><div class="stat"><b>0 leaked</b><span>of 81 planted personal-data items</span></div><div class="stat"><b>~1 ms</b><span>per record; p95 ≈ 10 ms on the samples (target 2,000 ms)</span></div><div class="stat"><b>3 / 3</b><span>required states verified per message</span></div><div class="stat"><b>$0</b><span>API cost by default</span></div></div>
+
+<h2>The design in one picture</h2>
+<pre class="mermaid">flowchart TD
+    IN[&quot;Records in&lt;br/&gt;JSONL, JSON array, paste, messy text&quot;] --&gt; READ[&quot;Reader&lt;br/&gt;repair what it can, refuse images and binary&quot;]
+    READ --&gt; NORM[&quot;Normalize&lt;br/&gt;Levels 1-3: new values, odd formats, unknown shapes&quot;]
+    NORM --&gt; STOP{&quot;STOP or opt-out?&quot;}
+    STOP -- yes --&gt; NOSEND[&quot;No send + reason&quot;]
+    STOP -- no --&gt; CHAN{&quot;Preferred channel&lt;br/&gt;with consent?&quot;}
+    CHAN -- none --&gt; NOSEND
+    CHAN -- sms / email --&gt; TIME[&quot;Send time&lt;br/&gt;last contact + dayN, channel hour, roll forward&quot;]
+    TIME --&gt; NEXT[&quot;Next action&lt;br/&gt;cadence short/long, or follow up&quot;]
+    NEXT --&gt; WORD{&quot;Wording&quot;}
+    WORD -- default --&gt; TPL[&quot;Template&lt;br/&gt;free, offline, exact&quot;]
+    WORD -- &quot;--llm (cost-guarded)&quot; --&gt; LLM[&quot;Claude writes one sentence&lt;br/&gt;allow-listed facts, samples as examples&quot;]
+    TPL --&gt; GUARD[&quot;Guards&lt;br/&gt;opt-out, PII, fair housing, no money or IDs&quot;]
+    LLM --&gt; GUARD
+    GUARD -- fail --&gt; TPL
+    GUARD --&gt; OUT[&quot;Output per record&lt;br/&gt;task_id, message, next action, why&quot;]
+    NOSEND --&gt; OUT
+    OUT --&gt; STATS[&quot;RUN STATS&lt;br/&gt;latency, safety, PII redacted, cost, match rates&quot;]
+
+    EX[&quot;Labelled examples&quot;] --&gt; LEARN[&quot;learn.py&lt;br/&gt;infer rules with evidence, validate labels&quot;]
+    LEARN --&gt; RULES[&quot;Rules&lt;br/&gt;learned.yaml over rules.yaml defaults&quot;]
+    RULES -.-&gt; TIME
+    RULES -.-&gt; NEXT
+    RULES -.-&gt; CHAN
+
+    classDef code fill:#E3EEE9,stroke:#2E6A58,color:#1B2320
+    classDef ai fill:#F6EEDF,stroke:#8A5A12,color:#1B2320
+    classDef stop fill:#F7E7E3,stroke:#A2412F,color:#1B2320
+    class READ,NORM,STOP,CHAN,TIME,NEXT,WORD,TPL,GUARD,OUT,STATS,LEARN,RULES code
+    class LLM ai
+    class NOSEND stop
+</pre>
+<div class="legend"><span><i class="sw" style="background:#E3EEE9;border:1px solid #2E6A58"></i>Code: every decision and check</span><span><i class="sw" style="background:#F6EEDF;border:1px solid #8A5A12"></i>AI: writes one sentence, optional</span><span><i class="sw" style="background:#F7E7E3;border:1px solid #A2412F"></i>No send, always with a reason</span></div>
+
+<h2>Five design decisions</h2>
+<div class="tablewrap"><table><thead><tr><th>Decision</th><th>Why</th></tr></thead><tbody><tr><td><b>Code decides; AI only writes words</b></td><td>Consent, timing and fair housing must be guaranteed and explainable, not just probably right.</td></tr><tr><td><b>Rules learned from labelled examples, offline and versioned</b></td><td>Learning you can see and measure. At runtime the bot applies a reviewed file, <code>config/learned.yaml</code>.</td></tr><tr><td><b>Stateless batch: one record in, one decision out</b></td><td>Simple, parallel, no database needed for the task. The wider platform is designed, not built.</td></tr><tr><td><b>Fail safe: never crash, never guess</b></td><td>A bad or unclear record becomes a no-send with a reason, never an error or a risky message.</td></tr><tr><td><b>Everything explains itself</b></td><td>A “why” list on every decision; the run checks against the thresholds in your own data.</td></tr></tbody></table></div>
+
+<h2>Where it lives</h2>
+<p>Each box in the diagram is a file.</p>
+<pre>bot.py                  the command you run: batch in, results out, run stats
+learn.py                learns rules from labelled examples (offline)
+outreach/
+  reader.py             Reader       tolerates messy input, refuses images
+  normalize.py          Normalize    handles unfamiliar record shapes
+  decide.py             STOP, channel, send time, next action (all code)
+  compose.py            Template     the wording
+  llm.py                Claude       optional wording, cost-guarded
+  guards.py             Guards       opt-out, PII, fair housing, brand
+  pipeline.py           wires the steps together, one record at a time
+config/
+  rules.yaml            hand-written defaults
+  learned.yaml          rules learned from the samples
+  properties.yaml       property facts and brand profile
+tests/, scripts/        tests, edge cases, decision table, checks
+plans/                  spec, design, decision register, reviews</pre>
+
+<h2>Built vs designed</h2>
+<div class="tablewrap"><table><thead><tr><th>Built and runnable</th><th>Designed, not built</th></tr></thead><tbody>
+<tr><td>Batch CLI; messy-input reader; export file and readable view</td><td>Database, APIs, login</td></tr>
+<tr><td>Consent/STOP gate, channel, send time, next action</td><td>Owner, support and renter web views</td></tr>
+<tr><td>Rule learning with leave-one-out evaluation</td><td>Real SMS/email/voice sending; inbound replies</td></tr>
+<tr><td>Templates (English, Spanish) and optional Claude wording</td><td>Sentiment tracking; review-site data</td></tr>
+<tr><td>Guards: opt-out, PII, fair housing, brand; decision table</td><td>Adjacent agents (maintenance, billing, …)</td></tr>
+</tbody></table></div>
+
+<footer>Repository: github.com/markfyoung0711/rp · decisions with reasons: plans/decisions.md</footer>
+</div>

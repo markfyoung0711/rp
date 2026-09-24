@@ -164,7 +164,7 @@ A: "Controllable fields (channel, send time, call to action, next action) must m
 To prove, run: `uv run bot.py -i plans/sample.jsonl --compare`
 
 **Q: What's p95 latency?**
-A: "95% of records finish within this time. The target in the data is 2 seconds. Template mode: under 1 millisecond. With the LLM: about 1.5 seconds per call."
+A: "95% of records finish within this time. The target in the data is 2 seconds. Template mode: about a millisecond per record, and about 10 milliseconds for the very first one while it warms up. With the LLM: about 1.5 seconds per call."
 
 **Q: What can't you measure?**
 A: "The data sets `personalization_score_min` and `reply_classification_f1_min`, but the spec gives no scoring method and there are no replies to classify. The stats say 'not measured' rather than pretend."
