@@ -54,12 +54,16 @@ uv run bot.py -i plans/sample.jsonl --compare              # the two samples, co
 uv run bot.py -i tests/edge_cases.jsonl                    # 16 unseen-style cases (Levels 1-3)
 uv run bot.py -i holdout.jsonl -o out/holdout.jsonl        # a hold-out file -> an output file
 uv run bot.py --paste -o out/holdout.jsonl                 # paste records, then Ctrl+D
+uv run learn.py plans/sample.jsonl --eval                  # learn the rules from labelled examples; leave-one-out test
+uv run python scripts/decision_table.py                     # all 120 consent × preference cases vs the policy
+uv run python scripts/report.py <file> [--only ID]         # paste-ready problem report (out/report.txt)
+uv run python scripts/validate_rules.py                     # check the rule configuration (run after any rule change)
 uv run pytest                                              # tests
-uv run python scripts/run_checks.py --full                 # the code-review checklist, automated (29 checks)
+uv run python scripts/run_checks.py --full                 # the code-review checklist, automated (34 checks)
 uv run python scripts/gen_records.py 100 > /tmp/p.jsonl    # generate test records (performance: plans/performance.md)
 ```
 
-Input can be JSONL, a JSON array, a wrapper object, or pretty-printed objects, in UTF-8 or UTF-16. The reader tolerates pasted garbage (prose, numbering, code fences, comments, smart quotes, trailing commas, Python-style dicts, double-encoded JSON, key variants such as `Task_ID`). It repairs what it can, notes each repair in the record's warnings, and turns anything unreadable into a no-send with a reason; see `tests/garbage_inputs.txt`. The screen shows each decision with its reasons, then a **RUN STATS** block (decisions by channel and reason, confidence, latency avg/p50/p95/max and throughput against the input's `p95_latency_ms`, a safety scan against `safety_violations_max`, a PII report (personal-data items found in the input and withheld from the output, by category; protected-class details withheld; anything leaked), plus a pattern scan of every output record, API cost, and with `--compare` per-field match rates and body similarity), then the whole batch between `=== BEGIN OUTPUT ===` and `=== END OUTPUT ===` for copy-paste. Add `--llm` to have Claude (Haiku 4.5) write the wording. **No cost by default:** if `--llm` would need any paid API call, the bot **stops before processing** (exit code 3). It prints how many calls would be made, the estimated tokens, and the **dollar cost avoided**. It runs only if every answer is already cached ($0), or if you allow spending: `--budget 0.10` (or `BOT_LLM_BUDGET_USD=0.10`) runs quietly when the estimate is within the limit and stops loudly when it isn't; `BOT_ALLOW_API_COST=1` allows any amount. Both print the estimated cost first. Any API failure falls back to the template.
+Input can be JSONL, a JSON array, a wrapper object, or pretty-printed objects, in UTF-8 or UTF-16. The reader tolerates pasted garbage (prose, numbering, code fences, comments, smart quotes, trailing commas, Python-style dicts, double-encoded JSON, key variants such as `Task_ID`). It repairs what it can, notes each repair in the record's warnings, and turns anything unreadable into a no-send with a reason; see `tests/garbage_inputs.txt`. The screen shows each decision with its reasons, then a **RUN STATS** block (decisions by channel and reason, confidence, latency avg/p50/p95/max and throughput against the input's `p95_latency_ms`, a safety scan against `safety_violations_max`, a PII report (personal-data items found in the input and withheld from the output, by category; protected-class details withheld; anything leaked), plus a pattern scan of every output record, API cost, and with `--compare` per-field match rates and body similarity), then the whole batch between `=== BEGIN OUTPUT ===` and `=== END OUTPUT ===` for copy-paste (`--pp` pretty-prints both the block and the `-o` file, one field per line, which is easier to read and to diff; without it the file is one line per record). Add `--llm` to have Claude (Haiku 4.5) write the wording. **No cost by default:** if `--llm` would need any paid API call, the bot **stops before processing** (exit code 3). It prints how many calls would be made, the estimated tokens, and the **dollar cost avoided**. It runs only if every answer is already cached ($0), or if you allow spending: `--budget 0.10` (or `BOT_LLM_BUDGET_USD=0.10`) runs quietly when the estimate is within the limit and stops loudly when it isn't; `BOT_ALLOW_API_COST=1` allows any amount. Both print the estimated cost first. Any API failure falls back to the template.
 
 ### Output (one line per record)
 
@@ -81,9 +85,19 @@ Input can be JSONL, a JSON array, a wrapper object, or pretty-printed objects, i
 | Next action | code | A new lead starts a cadence (`short` if ≤ 45 days to move-in, else `long`); otherwise follow up in 3 days |
 | Wording | template (default) or Claude (`--llm`) | Property claims come only from `config/properties.yaml` |
 | CTA and opt-out | code | Fixed text per channel and language; never written by the model |
-| Guards | code | Opt-out present, no phone or email in the body, no protected-class terms, unsafe names → "there" |
+| Guards | code | Opt-out present, no phone or email in the body, no protected-class terms, no money or account numbers, unsafe names → "there" |
+| Brand style | code | The property's brand profile (display name, no banned phrases, emoji or shouting, length limits); AI text that breaks it falls back to the template |
+| Required states | code | Each sent message reports the records' `required_states` (consent_verified, fair_housing_check_passed, brand_style_applied) as verified; RUN STATS shows the pass counts |
 
-The rules live in [`config/rules.yaml`](../config/rules.yaml). Each table has a default row for values the bot hasn't seen before.
+The rules live in [`config/rules.yaml`](../config/rules.yaml). Each table has a default row for values the bot hasn't seen before. **Every rule change, by a person or an AI, is validated** (`outreach/validate.py`): types and ranges, send hours inside the legal 8:00-21:00 window (which may be narrowed, never widened), STOP always present, no personal or protected fields allowed into the model prompt, valid CTAs, time zones and links. The bot and `learn.py` refuse to run on invalid rules (exit 6) and list every problem.
+
+### How it learns
+
+The decision rules are **learned from labelled examples**, meaning records that carry an `expected` block, not just typed in. `uv run learn.py <files>` infers each rule from the examples and prints the evidence: the send hour per channel, the day-offset rule, stage offsets, CTA mapping, next action per stage, follow-up days, and the short/long horizon threshold. `--write` saves the result to `config/learned.yaml`, which the bot then uses. RUN STATS shows which rules are active.
+
+- **From the 2 samples:** SMS 09:00 and email 10:00; dayN with roll-forward (2/2); book_tour → schedule_tour; new → start a cadence, open → follow up in 3 days; horizon threshold **50 days** (short at 32, long at 68).
+- **Add examples and the rules change:** `uv run learn.py plans/sample.jsonl tests/labelled_extra.jsonl` moves the threshold to 36 and learns +2 days for "open".
+- **Generalization is measured, not claimed:** `--eval` runs leave-one-out, learning from the other examples starting from neutral rules and predicting each one. With the 2 samples it scores 0/2, because one example can't teach the other's rules. With 4 examples, both samples are predicted correctly. The hold-out records are never learned from.
 
 ### Built vs designed
 
@@ -103,6 +117,7 @@ These were inferred from two samples and stated rather than hidden. The details 
 - **Property facts** (tour days, amenities, links) come from `config/properties.yaml`. For an unknown property the message makes no specific claims.
 - **Horizon threshold:** 45 days to move-in (samples: 32 → short).
 - **No-send shape:** as above. The assignment doesn't define one.
+- **Brand style** isn't defined by the assignment. It's implemented as a per-property brand profile (`config/properties.yaml`, defaults in `config/rules.yaml`) plus a check on every message.
 - **Consent:** only an explicit opt-in counts; missing or unclear consent means no send.
 - **Voice:** modeled but not built; skipped, with a reason.
 - **AI disclosure:** not added to message bodies, because the expected outputs don't include it; it would be a policy setting.
@@ -1057,6 +1072,11 @@ This records how the work departs from, or adds to, the **original assignment** 
 | D-046 | 2026-09-24 | **Spending limit for demos.** `--budget USD` (or `BOT_LLM_BUDGET_USD`): if the estimated cost of this run is at most the budget, proceed with a single `[cost]` line; otherwise stop loudly (exit 3) and show the overage. `BOT_ALLOW_API_COST=1` remains the explicit "any amount". Cached re-runs are $0 and show no banner. | ORIGINAL (Mark) | accepted | Demo without the banner on every run while keeping a hard cap on anticipated cost | bot.py |
 | D-047 | 2026-09-24 | **PII in output: minimum necessary.** The output may contain the recipient's **first name** (in the greeting; the samples' expected bodies include it) and the caller's own `task_id`, and nothing else personal. No last name, email, phone, address, DOB, SSN, card number, notes or protected traits, in any field (body, subject, `why`, warnings). A rejected first name is never echoed ("N characters, not shown"). Enforced by: template fields and the LLM allow-list; RUN STATS reports **PII redacted** (items found in the input by field name or pattern, withheld from the output, by category, with counts only, never values), protected-class details withheld, anything leaked, and a pattern scan of every output record; `tests/pii_cases.jsonl` with planted data checked by pytest and run_checks. Found and fixed: the `why` line used to echo a rejected name, which could be an email, phone or SSN. | ADD-ON (MFY) | accepted | `no_pii_leak` is a constraint in the samples; data minimization | outreach/compose.py, outreach/guards.py, bot.py, tests/pii_cases.jsonl |
 | D-048 | 2026-09-24 | **Identity boundary.** The bot is not responsible for passing identifying information through a pipeline. Its only join key is the caller's `task_id`, echoed in each response. The sample format carries no opaque person/lead/property IDs and no contact addresses. A downstream system of record resolves who and where at send time, using its own opaque IDs, never SSN, phone or email as keys. Pass-through of `*_id` fields is a possible extension if the hold-out carries IDs; not built. | ORIGINAL (Mark) | accepted | Minimum necessary data; matches the sample output shape | README, plans/pii-categories.md |
+| D-049 | 2026-09-24 | **The bot learns its rules from labelled examples.** `learn.py` infers send hours, the day-offset rule, stage offsets, CTA mapping, next action per stage, follow-up days and the horizon threshold (labels from cadence names or task_ids), printing the evidence per rule; `--write` saves `config/learned.yaml`, which overrides the hand-written defaults. `--eval` is leave-one-out from a neutral base (2 samples: 0/2; plus 2 labelled extras: both samples correct). Learned threshold 50 replaces the hand-set 45. No API; never trained on the hold-out. **Same input protections as the bot** (missing file, images/binary, encodings, garbage), plus **label validation**: malformed or poisoned `expected` blocks are rejected, and out-of-window hours or non-identifier CTA/cadence names are not learned or echoed. | ADD-ON (MFY) | accepted | Answers "can this bot learn?" visibly and measurably, at $0 | learn.py, outreach/learn.py, config/learned.yaml |
+| D-050 | 2026-09-24 | **Never learn from hold-out data.** `learn.py` refuses (exit 4, nothing learned, `learned.yaml` untouched) any input whose path contains "hold", and points to scoring with `bot.py --compare` instead. No override. | ORIGINAL (Mark) | accepted | Training on the test set would make the hold-out score meaningless | learn.py |
+| D-051 | 2026-09-24 | **Exhaustive channel decision table.** `scripts/decision_table.py` runs all 120 consent × preference combinations through the bot and checks each against an independently stated policy (first preferred, supported, consented channel); 120/120, never sends without consent, never voice. No-send reasons made precise (no consent / preferred channel not supported / consented channel not in preferences). **Open SME question:** should consent alone be enough when a consented channel isn't in the preference list (11 rows)? Current choice: respect the preference list. | ANALYSIS (ours) | accepted | Decision tables are the reviewable, exhaustive specification of must-be-right rules | scripts/decision_table.py, plans/decision-table-channel.md |
+| D-052 | 2026-09-24 | **brand_style_applied made concrete.** Per-property brand profile (`properties.yaml` `brand`, defaults `rules.yaml` `brand_default`): display name, banned sales phrases, no emoji, no ALL-CAPS shouting, max exclamations, SMS length. A brand guard checks every message; off-brand AI text falls back to the template. Each sent output reports the records' `required_states` (consent_verified, fair_housing_check_passed, brand_style_applied) in `meta`, and RUN STATS shows the pass counts. | ANALYSIS (ours) | accepted | The samples require the state but never define it (review gap S-13) | outreach/guards.py, outreach/pipeline.py, config/ |
+| D-053 | 2026-09-24 | **Rules validator.** `outreach/validate.py` checks `rules.yaml` + `learned.yaml` and `properties.yaml` on every load: types and ranges, send hours inside a legal window that may be narrowed but never widened (TCPA 8:00-21:00), STOP present, no personal/protected fields in the prompt allow-list, CTA names and purposes, time zones, https links, brand settings. The bot and `learn.py` refuse to run on invalid rules (exit 6). `scripts/validate_rules.py` for use after any rule change. Rule changes may be proposed by a person or by AI from plain English; the validator, tests, decision table and a `--pp` diff are the gate, and a human approves. | ADD-ON (MFY) | accepted | Safety comes from the gate, not from who edits the rules | outreach/validate.py, scripts/validate_rules.py |
 
 
 ---
@@ -1065,17 +1085,18 @@ This records how the work departs from, or adds to, the **original assignment** 
 
 | # | Title | Labels | State |
 |---|---|---|---|
-| [#1](https://github.com/markfyoung0711/rp/issues/1) | a) Intake plan: collect assignment inputs | documentation | closed |
-| [#2](https://github.com/markfyoung0711/rp/issues/2) | b) Understand plan: decisions, fields, implied rules | documentation | closed |
-| [#3](https://github.com/markfyoung0711/rp/issues/3) | c) Prior-art search + competitive intel: RealPage/peers — legal risk, practices to avoid, renter/customer pain points | documentation, deferred | open |
-| [#4](https://github.com/markfyoung0711/rp/issues/4) | d) Define detailed spec (schemas, rules, scoring) | documentation | closed |
-| [#5](https://github.com/markfyoung0711/rp/issues/5) | e) Imagine adjacent agents; add-on tests tracked vs original requirements | enhancement | open |
-| [#6](https://github.com/markfyoung0711/rp/issues/6) | f) Design session with engineer: alternatives to co-implement and compare | question | open |
-| [#7](https://github.com/markfyoung0711/rp/issues/7) | g) UX design: renter, customer support, and customer (owner) views — cooperating and visible simultaneously for demo | enhancement, deferred | open |
-| [#8](https://github.com/markfyoung0711/rp/issues/8) | h) Demo data: seed sample actors + create new actors live during the demo | enhancement, deferred | open |
-| [#9](https://github.com/markfyoung0711/rp/issues/9) | i) FIRST: independent critical review of the spec + prior-art research | documentation, priority: first | closed |
-| [#10](https://github.com/markfyoung0711/rp/issues/10) | j) External review sentiment: pull Yelp/Google/other review-site data per property via API | enhancement, deferred | open |
-| [#11](https://github.com/markfyoung0711/rp/issues/11) | k) Core bot v1: stateless batch decision CLI (D-038) | enhancement | closed |
+| [#1](https://github.com/markfyoung0711/rp/issues/1) | a) Intake plan: collect assignment inputs | documentation, core | closed |
+| [#2](https://github.com/markfyoung0711/rp/issues/2) | b) Understand plan: decisions, fields, implied rules | documentation, core | closed |
+| [#3](https://github.com/markfyoung0711/rp/issues/3) | c) Prior-art search + competitive intel: RealPage/peers — legal risk, practices to avoid, renter/customer pain points | documentation, deferred, non-core | open |
+| [#4](https://github.com/markfyoung0711/rp/issues/4) | d) Define detailed spec (schemas, rules, scoring) | documentation, core | closed |
+| [#5](https://github.com/markfyoung0711/rp/issues/5) | e) Imagine adjacent agents; add-on tests tracked vs original requirements | enhancement, non-core | open |
+| [#6](https://github.com/markfyoung0711/rp/issues/6) | f) Design session with engineer: alternatives to co-implement and compare | question, non-core | open |
+| [#7](https://github.com/markfyoung0711/rp/issues/7) | g) UX design: renter, customer support, and customer (owner) views — cooperating and visible simultaneously for demo | enhancement, deferred, non-core | open |
+| [#8](https://github.com/markfyoung0711/rp/issues/8) | h) Demo data: seed sample actors + create new actors live during the demo | enhancement, deferred, non-core | open |
+| [#9](https://github.com/markfyoung0711/rp/issues/9) | i) FIRST: independent critical review of the spec + prior-art research | documentation, priority: first, core | closed |
+| [#10](https://github.com/markfyoung0711/rp/issues/10) | j) External review sentiment: pull Yelp/Google/other review-site data per property via API | enhancement, deferred, non-core | open |
+| [#11](https://github.com/markfyoung0711/rp/issues/11) | k) Core bot v1: stateless batch decision CLI (D-038) | enhancement, core | closed |
+| [#12](https://github.com/markfyoung0711/rp/issues/12) | l) Core hardening v0.2: ingestion, PII, cost guard, stats, checks | enhancement, core | closed |
 
 **Status:** planning and reviews done ([#1](https://github.com/markfyoung0711/rp/issues/1), [#2](https://github.com/markfyoung0711/rp/issues/2), [#4](https://github.com/markfyoung0711/rp/issues/4), [#9](https://github.com/markfyoung0711/rp/issues/9)); the core bot shipped ([#11](https://github.com/markfyoung0711/rp/issues/11)); [#5](https://github.com/markfyoung0711/rp/issues/5) and [#6](https://github.com/markfyoung0711/rp/issues/6) in progress; [#3](https://github.com/markfyoung0711/rp/issues/3), [#7](https://github.com/markfyoung0711/rp/issues/7), [#8](https://github.com/markfyoung0711/rp/issues/8), [#10](https://github.com/markfyoung0711/rp/issues/10) deferred (designed, not built).
 
@@ -1481,6 +1502,32 @@ The core decision bot for the graded assignment and the hold-out export, built t
 **Run:** `uv run bot.py -i plans/sample.jsonl --compare` · `uv run pytest`
 
 Decisions: D-038, D-040, D-041, D-042. Work log: `plans/worklog.md`.
+
+## [#12](https://github.com/markfyoung0711/rp/issues/12) l) Core hardening v0.2: ingestion, PII, cost guard, stats, checks
+
+Hardening of the core bot after v0.1.0, driven by the code-review checklist and live testing. Tagged **v0.2.0**.
+
+**Delivered**
+- **Garbage-proof input (D-043):**
+  - UTF-8, BOM, UTF-16 and cp1252 files
+  - chat-style pastes, code fences, comments
+  - smart quotes, trailing commas, Python-style dicts, JSON inside strings, wrappers, key variants
+  - images, PDFs and binary input refused clearly (exit 2)
+- **Checklist fixes:** byte-identical output, `tzdata`, bounded LLM timeout, wrong-type fields, non-Latin names, duplicate IDs, steering terms
+- **PII (D-047):**
+  - 20 rental-PII categories plus protected-class details detected
+  - 81 planted items withheld, 0 leaked
+  - money amounts and account-like numbers blocked from messages
+  - no sensitive fields in the model prompt
+  - rejected names never echoed
+- **Cost (D-044–D-046):** `--llm` stops loudly (exit 3), showing the calls, tokens and dollars avoided; `--budget` sets a spending limit; $0 by default
+- **RUN STATS:** decisions, confidence, latency vs input thresholds, safety scan, PII redacted and leaked counts, cost, per-field match rates
+- **Tooling and docs:**
+  - `scripts/run_checks.py` (29 checks) and the `run-checks` skill
+  - `scripts/gen_records.py`; performance on 100 and 100K records (`plans/performance.md`)
+  - `--only` filter; `plans/demo-tests.md` (28 demo tests); README; `docs/demo-runbook.html`
+
+**Verified:** both samples match every field; 14 tests; 29/29 checks; a blind 12-record run read by eye (two wording fixes).
 
 ---
 
@@ -2172,6 +2219,14 @@ Every command runs from the project folder (`~/realpage`) with no network, unles
 | 2 | `uv run bot.py -i plans/sample.jsonl --only day0` | The "why" trail for one decision: consent → SMS; Dec 8 09:04 + 0 days, past 09:00 → Dec 9 09:00; 32 days → short horizon |
 | 3 | Run [#1](https://github.com/markfyoung0711/rp/issues/1) twice with `-o out/a.jsonl` and `-o out/b.jsonl`, then `cmp out/a.jsonl out/b.jsonl` | Deterministic: byte-identical output |
 
+### 1b. Learning from the data
+
+| # | Command | What it shows |
+|---|---|---|
+| L1 | `uv run learn.py plans/sample.jsonl` | Each rule inferred from the 2 samples, with the number of examples supporting it; the horizon threshold learned as 50 days (was hand-set to 45) |
+| L2 | `uv run learn.py plans/sample.jsonl --eval` | Leave-one-out: 0/2. One example can't teach the other's rules, which proves the rules come from the data |
+| L3 | `uv run learn.py plans/sample.jsonl tests/labelled_extra.jsonl --eval` | Two more examples → **the rules change** (threshold 50 → 36; open +3 → +2 days) and leave-one-out predicts both samples correctly |
+
 ### 2. Decisions on cases the samples don't show (`tests/edge_cases.jsonl`)
 
 | # | Command | What it shows |
@@ -2187,6 +2242,12 @@ Every command runs from the project folder (`~/realpage`) with no network, unles
 | 12 | `… --only unknown_cta` | Unmapped CTA → generic fallback, named in the reasons; Phoenix time zone (−07:00) |
 | 13 | `… --only unknown_property` | Property with no facts on file → no invented tour days, amenities or links |
 | 14 | `… --only spanish_tour` | Spanish email; no `dayN` → the stage's default offset |
+
+### 2b. Exhaustive channel policy
+
+| # | Command | What it shows |
+|---|---|---|
+| 14b | `uv run python scripts/decision_table.py` | All 120 consent × preference combinations run through the bot and checked against the written policy: 120/120; never sends without consent; precise reasons for the 48 no-sends; 11 rows flagged for an SME question. Table: `plans/decision-table-channel.md` |
 
 ### 3. Unseen record types (Levels 1–3)
 
@@ -2227,6 +2288,6 @@ Every command runs from the project folder (`~/realpage`) with no network, unles
 | # | Command | What it shows |
 |---|---|---|
 | 27 | `uv run pytest` | Unit tests: samples, edge cases, determinism, input formats, garbage, binary refusal |
-| 28 | `uv run python scripts/run_checks.py --full` | The code-review checklist, automated: 29 checks, including a clean-clone install and the cost guard |
+| 28 | `uv run python scripts/run_checks.py --full` | The code-review checklist, automated: 34 checks, including a clean-clone install and the cost guard |
 
-**Suggested live order (about 5 minutes):** 1 → 2 → 8 → 4 → 17 → 20 → 22 → 24, then the hold-out itself.
+**Suggested live order (about 6 minutes):** 1 → L1 → L3 → 2 → 8 → 4 → 17 → 20 → 22 → 24, then the hold-out itself.

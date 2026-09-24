@@ -30,8 +30,11 @@ flowchart TD
     NOSEND --> OUT
     OUT --> STATS["RUN STATS<br/>latency, safety, PII redacted, cost, match rates"]
 
-    EX["Labelled examples"] --> LEARN["learn.py<br/>infer rules with evidence, validate labels"]
-    LEARN --> RULES["Rules<br/>learned.yaml over rules.yaml defaults"]
+    EX["Labelled examples<br/>(never the hold-out)"] --> LEARN["learn.py<br/>infer rules with evidence, validate labels"]
+    EDIT["Rule edits<br/>by a person or by AI, from plain English"] --> VAL
+    LEARN --> VAL{"Rules validator<br/>types, legal window, STOP, PII allow-list"}
+    VAL -- invalid --> REFUSE["Bot refuses to run<br/>and lists the problems"]
+    VAL -- valid --> RULES["Rules<br/>learned.yaml over rules.yaml defaults"]
     RULES -.-> TIME
     RULES -.-> NEXT
     RULES -.-> CHAN
@@ -39,14 +42,14 @@ flowchart TD
     classDef code fill:#E3EEE9,stroke:#2E6A58,color:#1B2320
     classDef ai fill:#F6EEDF,stroke:#8A5A12,color:#1B2320
     classDef stop fill:#F7E7E3,stroke:#A2412F,color:#1B2320
-    class READ,NORM,STOP,CHAN,TIME,NEXT,WORD,TPL,GUARD,OUT,STATS,LEARN,RULES code
+    class READ,NORM,STOP,CHAN,TIME,NEXT,WORD,TPL,GUARD,OUT,STATS,LEARN,RULES,VAL,EDIT code
     class LLM ai
-    class NOSEND stop
+    class NOSEND,REFUSE stop
 ```
 
 If the diagram doesn't render in your viewer, open the image: [`docs/design.png`](../docs/design.png).
 
-**How to read it:** green boxes are **code**: every decision, every check, and the learning. The one amber box is **AI**, and it only writes a sentence. The red box is a **no-send**, which always carries a reason. The dotted lines show learned rules feeding the decisions.
+**How to read it:** green boxes are **code**: every decision, every check, and the learning. The one amber box is **AI**, and it only writes a sentence. The red box is a **no-send**, which always carries a reason. The right-hand side is how rules are made: learned from labelled examples, or edited by a person or an AI, and either way checked by the rules validator before the bot will use them. The dotted lines show the rules feeding the decisions.
 
 **Say:** "Everything that can get you sued is green. The AI is one amber box that writes a sentence, and even its output goes through the guards, falling back to the template."
 
@@ -80,6 +83,7 @@ outreach/
   compose.py            "Template"      the wording
   llm.py                "Claude"        optional wording, cost-guarded
   guards.py             "Guards"        opt-out, PII, fair housing, brand
+  validate.py           "Rules validator" every rule change is checked before use
   pipeline.py           wires the steps together, one record at a time
   learn.py / pii.py     rule learning / personal-data audit
 config/

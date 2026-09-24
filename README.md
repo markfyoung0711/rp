@@ -15,8 +15,9 @@ uv run bot.py --paste -o out/holdout.jsonl                 # paste records, then
 uv run learn.py plans/sample.jsonl --eval                  # learn the rules from labelled examples; leave-one-out test
 uv run python scripts/decision_table.py                     # all 120 consent × preference cases vs the policy
 uv run python scripts/report.py <file> [--only ID]         # paste-ready problem report (out/report.txt)
+uv run python scripts/validate_rules.py                     # check the rule configuration (run after any rule change)
 uv run pytest                                              # tests
-uv run python scripts/run_checks.py --full                 # the code-review checklist, automated (33 checks)
+uv run python scripts/run_checks.py --full                 # the code-review checklist, automated (34 checks)
 uv run python scripts/gen_records.py 100 > /tmp/p.jsonl    # generate test records (performance: plans/performance.md)
 ```
 
@@ -46,7 +47,7 @@ Input can be JSONL, a JSON array, a wrapper object, or pretty-printed objects, i
 | Brand style | code | The property's brand profile (display name, no banned phrases, emoji or shouting, length limits); AI text that breaks it falls back to the template |
 | Required states | code | Each sent message reports the records' `required_states` (consent_verified, fair_housing_check_passed, brand_style_applied) as verified; RUN STATS shows the pass counts |
 
-The rules live in [`config/rules.yaml`](config/rules.yaml). Each table has a default row for values the bot hasn't seen before.
+The rules live in [`config/rules.yaml`](config/rules.yaml). Each table has a default row for values the bot hasn't seen before. **Every rule change, by a person or an AI, is validated** (`outreach/validate.py`): types and ranges, send hours inside the legal 8:00-21:00 window (which may be narrowed, never widened), STOP always present, no personal or protected fields allowed into the model prompt, valid CTAs, time zones and links. The bot and `learn.py` refuse to run on invalid rules (exit 6) and list every problem.
 
 ## How it learns
 

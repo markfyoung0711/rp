@@ -42,3 +42,6 @@ eval-results/
 
 # Bot outputs
 out/
+
+# Scratch outputs in the repo root (e.g. --pp diff experiments)
+/*.json

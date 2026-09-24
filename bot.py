@@ -23,6 +23,7 @@ from outreach.llm import DEFAULT_MODEL
 from outreach import config, guards, pii
 from outreach.pipeline import pending_llm_call, process
 from outreach.reader import ReadError, UnsupportedInput, decode_bytes, read_batch
+from outreach.validate import RulesError
 
 FIELDS = ["channel", "send_at", "subject", "body", "cta", "next_action"]
 
@@ -284,6 +285,7 @@ def main() -> None:
     ap.add_argument("--only", help="show only records whose task_id contains this text (for demos)")
     args = ap.parse_args()
 
+    config.rules(), config.properties()          # validate the rules first: fail before touching any input
     try:
         if args.paste:
             print("Paste records, then press Ctrl+D (Ctrl+Z then Enter on Windows):", file=sys.stderr)
@@ -352,6 +354,10 @@ if __name__ == "__main__":
         sys.exit(130)
     except SystemExit:
         raise
+    except RulesError as e:
+        print(f"\nThe rules configuration is invalid, so nothing was processed.\n{e}", file=sys.stderr)
+        print("Fix the file(s) above, then check with:  uv run python scripts/validate_rules.py", file=sys.stderr)
+        sys.exit(6)
     except Exception as e:  # noqa: BLE001 -- never show a raw traceback in a demo; say what to do instead
         print(f"\nThe bot hit an unexpected problem: {type(e).__name__}: {e}", file=sys.stderr)
         print("No partial results were written. To capture it for fixing, run:", file=sys.stderr)

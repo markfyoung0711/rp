@@ -149,6 +149,9 @@ def main(full: bool) -> int:
     check("P0", "decision table: all 120 consent × preference combinations match the policy",
           dt.returncode == 0 and "120 match the policy" in dt.stdout, dt.stdout[-300:])
 
+    vr = sh("uv", "run", "python", "scripts/validate_rules.py")
+    check("P0", "rules validator: the rule configuration is valid", vr.returncode == 0 and "VALID" in vr.stdout, vr.stdout[-300:])
+
     # D. Static
     check("P0", "pytest", sh("uv", "run", "pytest", "-q").returncode == 0)
     ruff = sh("uv", "run", "ruff", "check", "outreach", "bot.py", "tests", "--select", "E9,F")

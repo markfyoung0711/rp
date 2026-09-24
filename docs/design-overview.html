@@ -133,8 +133,11 @@ pre:not(.mermaid) code{background:none;color:inherit;padding:0}
     NOSEND --&gt; OUT
     OUT --&gt; STATS[&quot;RUN STATS&lt;br/&gt;latency, safety, PII redacted, cost, match rates&quot;]
 
-    EX[&quot;Labelled examples&quot;] --&gt; LEARN[&quot;learn.py&lt;br/&gt;infer rules with evidence, validate labels&quot;]
-    LEARN --&gt; RULES[&quot;Rules&lt;br/&gt;learned.yaml over rules.yaml defaults&quot;]
+    EX[&quot;Labelled examples&lt;br/&gt;(never the hold-out)&quot;] --&gt; LEARN[&quot;learn.py&lt;br/&gt;infer rules with evidence, validate labels&quot;]
+    EDIT[&quot;Rule edits&lt;br/&gt;by a person or by AI, from plain English&quot;] --&gt; VAL
+    LEARN --&gt; VAL{&quot;Rules validator&lt;br/&gt;types, legal window, STOP, PII allow-list&quot;}
+    VAL -- invalid --&gt; REFUSE[&quot;Bot refuses to run&lt;br/&gt;and lists the problems&quot;]
+    VAL -- valid --&gt; RULES[&quot;Rules&lt;br/&gt;learned.yaml over rules.yaml defaults&quot;]
     RULES -.-&gt; TIME
     RULES -.-&gt; NEXT
     RULES -.-&gt; CHAN
@@ -142,14 +145,15 @@ pre:not(.mermaid) code{background:none;color:inherit;padding:0}
     classDef code fill:#E3EEE9,stroke:#2E6A58,color:#1B2320
     classDef ai fill:#F6EEDF,stroke:#8A5A12,color:#1B2320
     classDef stop fill:#F7E7E3,stroke:#A2412F,color:#1B2320
-    class READ,NORM,STOP,CHAN,TIME,NEXT,WORD,TPL,GUARD,OUT,STATS,LEARN,RULES code
+    class READ,NORM,STOP,CHAN,TIME,NEXT,WORD,TPL,GUARD,OUT,STATS,LEARN,RULES,VAL,EDIT code
     class LLM ai
-    class NOSEND stop
+    class NOSEND,REFUSE stop
 </pre>
 <div class="legend"><span><i class="sw" style="background:#E3EEE9;border:1px solid #2E6A58"></i>Code: every decision and check</span><span><i class="sw" style="background:#F6EEDF;border:1px solid #8A5A12"></i>AI: writes one sentence, optional</span><span><i class="sw" style="background:#F7E7E3;border:1px solid #A2412F"></i>No send, always with a reason</span></div>
 
-<h2>Five design decisions</h2>
-<div class="tablewrap"><table><thead><tr><th>Decision</th><th>Why</th></tr></thead><tbody><tr><td><b>Code decides; AI only writes words</b></td><td>Consent, timing and fair housing must be guaranteed and explainable, not just probably right.</td></tr><tr><td><b>Rules learned from labelled examples, offline and versioned</b></td><td>Learning you can see and measure. At runtime the bot applies a reviewed file, <code>config/learned.yaml</code>.</td></tr><tr><td><b>Stateless batch: one record in, one decision out</b></td><td>Simple, parallel, no database needed for the task. The wider platform is designed, not built.</td></tr><tr><td><b>Fail safe: never crash, never guess</b></td><td>A bad or unclear record becomes a no-send with a reason, never an error or a risky message.</td></tr><tr><td><b>Everything explains itself</b></td><td>A “why” list on every decision; the run checks against the thresholds in your own data.</td></tr></tbody></table></div>
+<h2>Six design decisions</h2>
+<div class="tablewrap"><table><thead><tr><th>Decision</th><th>Why</th></tr></thead><tbody><tr><td><b>Code decides; AI only writes words</b></td><td>Consent, timing and fair housing must be guaranteed and explainable, not just probably right.</td></tr><tr><td><b>Rules learned from labelled examples, offline and versioned</b></td><td>Learning you can see and measure. At runtime the bot applies a reviewed file, <code>config/learned.yaml</code>.</td></tr><tr><td><b>Stateless batch: one record in, one decision out</b></td><td>Simple, parallel, no database needed for the task. The wider platform is designed, not built.</td></tr><tr><td><b>Fail safe: never crash, never guess</b></td><td>A bad or unclear record becomes a no-send with a reason, never an error or a risky message.</td></tr><tr><td><b>Rules are data, and every change is validated</b></td><td>Rules live in YAML, whether learned or edited by a person or an AI. A validator checks types, legal limits, STOP and the PII allow-list; the bot refuses to run on invalid rules.</td></tr>
+<tr><td><b>Everything explains itself</b></td><td>A “why” list on every decision; the run checks against the thresholds in your own data.</td></tr></tbody></table></div>
 
 <h2>Where it lives</h2>
 <p>Each box in the diagram is a file.</p>
@@ -162,6 +166,7 @@ outreach/
   compose.py            Template     the wording
   llm.py                Claude       optional wording, cost-guarded
   guards.py             Guards       opt-out, PII, fair housing, brand
+  validate.py           Rules validator: every rule change is checked before use
   pipeline.py           wires the steps together, one record at a time
 config/
   rules.yaml            hand-written defaults

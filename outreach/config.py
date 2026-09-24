@@ -62,12 +62,22 @@ def rules() -> dict:
         for section, values in NEUTRAL.items():
             r[section] = {**r[section], **values}
     learned = {k: v for k, v in learned_rules().items() if k != "evidence"}
-    return deep_merge(r, learned)
+    merged = deep_merge(r, learned)
+    from .validate import RulesError, validate_rules      # local import: validate has no config dependency
+    problems = validate_rules(merged)
+    if problems:
+        source = "config/rules.yaml" + (" + config/learned.yaml" if learned else "")
+        raise RulesError(f"{len(problems)} problem(s) in {source}:\n  - " + "\n  - ".join(problems))
+    return merged
 
 
 @lru_cache
 def properties() -> dict:
     raw = yaml.safe_load((CONFIG_DIR / "properties.yaml").read_text()) or {}
+    from .validate import RulesError, validate_properties
+    problems = validate_properties(raw)
+    if problems:
+        raise RulesError(f"{len(problems)} problem(s) in config/properties.yaml:\n  - " + "\n  - ".join(problems))
     return {name.strip().lower(): facts for name, facts in raw.items()}
 
 

@@ -270,3 +270,40 @@ def test_pp_file_diffs_field_by_field(tmp_path):
     assert a.read_bytes() == b.read_bytes()                # deterministic
     assert a.read_text().count("\n") > 40                  # one field per line
     assert len(read_records(a.read_text())) == 2           # reads back
+
+
+def test_rules_validator_rejects_bad_or_unsafe_rules():
+    import pytest
+    from outreach import config
+    from outreach.validate import RulesError
+    bad_changes = [
+        ({"channels": {"send_hour": {"sms": 23}}}, "outside the legal window"),
+        ({"channels": {"send_hour": {"sms": "nine"}}}, "not an hour"),
+        ({"channels": {"legal_window": [6, 23]}}, "wider than the legal"),
+        ({"next_action": {"follow_up_days": 0}}, "follow_up_days"),
+        ({"profile_allow_list": ["first_name", "email"]}, "may never reach the model"),
+        ({"stop_keywords": ["QUIT"]}, "includes STOP"),
+        ({"cta": {"book_tour": {"type": "<b>x</b>", "purpose": "tour", "link_key": "tour_link"}}}, "lowercase identifier"),
+    ]
+    try:
+        for change, message in bad_changes:
+            config.use_rules("hand", change)
+            with pytest.raises(RulesError, match=message):
+                config.rules()
+        config.use_rules("hand", None)
+        assert config.rules()["channels"]["send_hour"]["sms"] == 9          # the real rules are valid
+    finally:
+        config.use_rules("hand", None)
+
+
+def test_bot_refuses_to_run_on_invalid_rules(tmp_path, monkeypatch):
+    import subprocess
+    import shutil
+    work = tmp_path / "repo"
+    shutil.copytree(ROOT, work, ignore=shutil.ignore_patterns(".venv", ".git", "out", ".cache"))
+    rules = (work / "config" / "rules.yaml").read_text().replace("    sms: 9", "    sms: 23")
+    (work / "config" / "rules.yaml").write_text(rules)
+    (work / "config" / "learned.yaml").unlink()
+    r = subprocess.run(["uv", "run", "--project", str(ROOT), "python", "bot.py", "-i", "plans/sample.jsonl"],
+                       cwd=work, capture_output=True, text=True)
+    assert r.returncode == 6 and "outside the legal window" in r.stderr, r.stderr[-400:]

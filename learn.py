@@ -146,4 +146,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    from outreach.validate import RulesError
+    try:
+        main()
+    except RulesError as e:
+        print(f"The rules configuration is invalid, so nothing was learned.\n{e}", file=sys.stderr)
+        sys.exit(6)
