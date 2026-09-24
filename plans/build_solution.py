@@ -80,12 +80,17 @@ def main():
     decisions = drop_title_and_banner(read("decisions.md")).split("## How to add an entry")[0]
     analysis = read("sample-analysis.md")
     today = datetime.date.today().isoformat()
+    readme = (PLANS.parent / "README.md").read_text()
+    # Drop the README title, demote its sections, and re-point its repo-relative links from plans/.
+    body = readme.split("\n", 1)[1].replace("](plans/", "](")
+    body = re.sub(r"\]\((?!https?:|#|\.\./)([^)]+)\)", lambda m: f"](../{m.group(1)}" + ")" if "/" in m.group(1) or m.group(1).endswith(".md") and not (PLANS / m.group(1)).exists() else m.group(0), body)
+    built = transform(body, demote=1)
 
     parts = [f"""# Solution: Context-Aware Messaging Bot for Rental Housing
 
-**Author:** Mark F. Young · **Updated:** {today} · **Status:** draft for SME review
+**Author:** Mark F. Young · **Updated:** {today} · **Status:** v0.2 built and tested; the platform beyond the core is designed, not built
 
-This one document combines the original assignment, our analysis of the sample data, the solution design, the actor walkthroughs, the use cases, the decision register and the work plan (GitHub issues). It is generated from the files in `plans/` by `plans/build_solution.py`.
+This one document combines what was built, the original assignment, our analysis of the sample data, the solution design, the actor walkthroughs, the use cases, the decision register, the work plan (GitHub issues), and the review, test, performance and PII results. It is generated from the repo by `plans/build_solution.py`.
 
 ## For the reviewer
 
@@ -97,22 +102,34 @@ This one document combines the original assignment, our analysis of the sample d
 | **ANALYSIS** | Our inference from the assignment's data (only 2 sample records). A hypothesis. |
 | **ADD-ON (MFY)** | Mark F. Young's extension beyond the assignment. |
 
-**What I'd most like challenged**
+**Start with Part 0 (what was built and how to run it).** Everything after Part 1 was written before the build, then corrected by two independent reviews (Appendix A); the decision register (Part 5) records every change.
+
+**Questions that shaped the design (answered by the reviews)**
 1. Does the design respect "learns what to do only from input data"? It is mostly deterministic rules plus an LLM for the wording (D-014, Part 2 §7).
 2. Which rules inferred from only 2 samples are overfit (D-002)?
 3. Is the add-on scope (D-003 to D-020) at risk of crowding out the graded core?
 4. Gaps and risks: security and PII (§9), demo auth (§10), database choice (§5), and legal and competitive exposure (§13).
 5. Anything missing from the use cases, actors or data elements.
 
-The same questions drive the independent review in [#9]({ISSUE_URL}9). Findings will be recorded as new entries in the decision register (Part 5).
+The independent reviews ([#9]({ISSUE_URL}9)) answered these; their findings are recorded in the decision register (Part 5).
 
 **Contents**
+0. What was built (v0.2)
 1. The original assignment
 2. Solution design
 3. Actor walkthroughs
 4. Use-case traceability
 5. Decision register
 6. Work plan (GitHub issues)
+- Appendix A: critical reviews · B: code-review results · C: performance · D: PII categories · E: demo tests
+
+---
+
+# Part 0 — What was built (v0.2)
+
+> From [`README.md`](../README.md). Run `uv run bot.py -i plans/sample.jsonl --compare` to see both samples match every field.
+
+{{BUILT}}
 
 ---
 
@@ -135,6 +152,8 @@ The same questions drive the independent review in [#9]({ISSUE_URL}9). Findings 
         "\n---\n\n# Part 6 — Work plan (GitHub issues)\n",
     ]
 
+    parts[0] = parts[0].replace("{BUILT}", built)
+
     items = issues()
     if items:
         rows = ["| # | Title | Labels | State |", "|---|---|---|---|"]
@@ -142,12 +161,19 @@ The same questions drive the independent review in [#9]({ISSUE_URL}9). Findings 
             labels = ", ".join(l["name"] for l in i["labels"])
             rows.append(f"| [#{i['number']}]({ISSUE_URL}{i['number']}) | {i['title']} | {labels} | {i['state'].lower()} |")
         parts.append("\n".join(rows) + "\n\n" + transform(
-            "**Order:** #9 and #3 first (review and prior art) → #1, #2 → #4 → #5, #7, #8, #10 → #6.") + "\n")
+            "**Status:** planning and reviews done (#1, #2, #4, #9); the core bot shipped (#11); #5 and #6 in progress; #3, #7, #8, #10 deferred (designed, not built).") + "\n")
         for i in items:
             parts.append(f"\n## [#{i['number']}]({ISSUE_URL}{i['number']}) {i['title']}\n")
             parts.append(transform(i["body"].replace("\r\n", "\n"), demote=2))
     else:
         parts.append("_Issues could not be fetched; see the GitHub repo._\n")
+
+    for letter, title, name in (("A", "Critical reviews", "review.md"), ("B", "Code-review results", "code-review-results.md"),
+                                ("C", "Performance", "performance.md"), ("D", "PII categories and handling", "pii-categories.md"),
+                                ("E", "Demo tests", "demo-tests.md")):
+        body = drop_title_and_banner(read(name))
+        parts.append(f"\n---\n\n# Appendix {letter} — {title}\n\n> From `plans/{name}`.\n")
+        parts.append(transform(body, demote=1))
 
     (PLANS / "solution.md").write_text("\n".join(parts).rstrip() + "\n")
     print(f"wrote {PLANS / 'solution.md'}")

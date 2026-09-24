@@ -6,7 +6,7 @@ Times are US Central (CDT). Delivery deadline: **2026-09-24, 12:00 noon** (D-021
 
 | When | What | Artifacts |
 |---|---|---|
-| 09-18 | Pre-assignment prep: synthetic JSONL fixtures, JSONL profiler, predictions of what the assignment would contain | `data/samples/`, `profile_jsonl.py`, `guessing.md` (commit 31c5117) |
+| 09-18 | Pre-assignment prep: synthetic JSONL fixtures, JSONL profiler, predictions of what the assignment would contain | now in `archive/` (`data/samples/`, `profile_jsonl.py`, `guessing.md`; commit 31c5117) |
 | 09-24, early | Assignment captured: the problem statement and `sample.jsonl` (2 records) | `plans/spec.md`, `plans/sample.jsonl` |
 | | Project skills copied from `../estimator` | `.claude/skills/` |
 | | GitHub issues #1–#10 created: intake, understanding, prior art + competitive intel + UX prior art, detailed spec, add-on agents/tests, alternatives, UX, demo data, independent review, external reviews | github.com/markfyoung0711/rp/issues |
