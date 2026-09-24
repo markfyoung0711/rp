@@ -1,0 +1,80 @@
+# Spanish message templates. See en.yaml for the structure.
+language: es
+name: Español
+
+opt_out:
+  sms: "Responde STOP para cancelar."
+  email: "Para dejar de recibir correos, haz clic aquí o responde STOP."
+  voice: "Para no recibir más llamadas, marque 9 o diga stop."
+
+days: [lunes, martes, miércoles, jueves, viernes, sábado, domingo]
+days_short: [lun, mar, mié, jue, vie, sáb, dom]
+months: [enero, febrero, marzo, abril, mayo, junio, julio, agosto, septiembre, octubre, noviembre, diciembre]
+move_timing: {early: "principios de {month}", mid: "mediados de {month}", late: "finales de {month}"}
+article_an_before_vowel: false
+join_or: " o el "
+join_and: " y "
+join_subject: " y "
+this_week: "esta semana"
+coming_days: "en los próximos días"
+unknown_property: "la propiedad"
+voice_intro_default: "le llamamos de {prop}"
+
+tour:
+  sms_greeting_new: "te damos la bienvenida a"
+  sms_greeting_other: "te damos la bienvenida a"
+  sms_slots: "Hola {name}, ¡{greeting} {prop}! Hay visitas disponibles {when}. ¿Te gustaría reservar el {days}?"
+  sms_code: "{n} para {short}"
+  sms_slots_tail: "Responde {codes}. {opt_out}"
+  sms_noslot: "Hola {name}, gracias por tu interés en {prop}. ¿Te gustaría agendar una visita?"
+  sms_noslot_tail: "Responde SÍ y te enviaremos horarios. {opt_out}"
+  sms_noslot_option: "SÍ"
+  voice_slots: "Hola {name}, {intro}. Hay visitas disponibles {when}. ¿Le gustaría reservar el {days}?"
+  voice_key: "marque {n} para el {day}"
+  voice_slots_tail: "Por favor, {keys}. {opt_out}"
+  voice_noslot: "Hola {name}, {intro}. ¿Le gustaría agendar una visita?"
+  voice_noslot_tail: "Marque 1 y le devolveremos la llamada con horarios. {opt_out}"
+  email_subject_labels: "Visita {prop}: conoce {labels}"
+  email_subject_label_form: body
+  email_subject_plain: "Visita {prop}"
+  email_move: "Como planeas mudarte a {move}, "
+  email_amenities_after_move: "aquí tienes un vistazo a nuestro {labels}."
+  email_amenities: "Aquí tienes un vistazo a nuestro {labels}."
+  email_move_only: "es un buen momento para conocer {prop}."
+  email_fallback: "Nos encantaría mostrarte {prop}."
+  email_core: "Hola {name}:\n{first} {closer}"
+  email_closer_default: "Agenda una visita esta semana."
+  use_property_closer: false
+  email_link: "Reserva aquí → {link}"
+  email_nolink: "Responde a este correo para agendar una visita."
+
+general:
+  sms_core: "Hola {name}: {line}"
+  sms_details: "Detalles: {link}"
+  email_core: "Hola {name}:\n{Line}"
+  email_action: "Continuar → {link}"
+  voice_core: "Hola {name}, {intro}. {Line}"
+  voice_tail: "Marque 1 para hablar con nuestro equipo. {opt_out}"
+  lines:
+    apply: "tu solicitud para {prop} toma solo unos minutos. ¿Listo para empezar?"
+    sign_lease: "tu contrato de arrendamiento para {prop} está listo para firmar."
+    payment: "te recordamos amablemente tu pago para {prop}. Puedes hacerlo en línea."
+    renewal: "nos encantaría que te quedes en {prop}. Tus opciones de renovación están listas."
+    maintenance: "podemos ayudarte a programar tu solicitud de mantenimiento en {prop}."
+    general: "queríamos darte seguimiento sobre {prop}. ¿Cómo podemos ayudarte?"
+  subjects:
+    apply: "Tu solicitud para {prop}"
+    sign_lease: "Tu contrato de {prop} está listo para firmar"
+    payment: "Recordatorio de pago de {prop}"
+    renewal: "Tus opciones de renovación en {prop}"
+    maintenance: "Tu solicitud de mantenimiento en {prop}"
+    general: "Seguimiento de {prop}"
+
+# Spanish compliance words, added to the lists in rules.yaml.
+stop_keywords: [ALTO, PARAR, PARE, BAJA, "DAR DE BAJA", CANCELAR, DETENER, "NO MAS", "NO MÁS", "YA NO"]
+protected_terms: [niño, niña, hijo, hija, bebé, embaraz, religión, religios, iglesia, mezquita, sinagoga, cristian,
+                  musulm, judí, judío, discapacid, silla de ruedas, raza, racial, étnic, origen nacional, inmigra,
+                  nacionalidad, ciudadan, género, orientación sexual, casad, soltera, soltero, madre soltera,
+                  padre soltero, anciano, tercera edad, jubilad, solo adultos, sin niños, parejas]
+banned_phrases: [actúa ya, tiempo limitado, date prisa, no te lo pierdas, garantizado, mejor oferta, barato, urgente,
+                 última oportunidad, oferta exclusiva]

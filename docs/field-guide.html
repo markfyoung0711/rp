@@ -238,8 +238,8 @@ td code{white-space:nowrap}
 <tr>
 <td><code>language</code></td>
 <td><code>en</code></td>
-<td>Their language</td>
-<td>English or Spanish templates, opt-out wording and call scripts; other languages fall back to English, with a note. Spanish opt-out replies (ALTO, BAJA, PARAR, CANCELAR, NO MÁS) stop messages, and Spanish fair-housing terms and banned sales phrases are checked too</td>
+<td>Their language (a locale like <code>es-MX</code> counts as <code>es</code>)</td>
+<td>Picks the message templates in <code>config/templates/&lt;lang&gt;.yaml</code> (English, Spanish and French today), if the property offers that language; otherwise the property's <code>default_language</code>, with a note. Spanish opt-out replies (ALTO, BAJA, PARAR, CANCELAR, NO MÁS) stop messages, and Spanish fair-housing terms and banned sales phrases are checked too</td>
 </tr>
 <tr>
 <td><code>profile.first_name</code></td>

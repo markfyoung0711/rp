@@ -63,6 +63,12 @@ def rules() -> dict:
             r[section] = {**r[section], **values}
     learned = {k: v for k, v in learned_rules().items() if k != "evidence"}
     merged = deep_merge(r, learned)
+    # Each language file adds its own STOP keywords, protected terms and banned phrases.
+    for t in templates().values():
+        merged["stop_keywords"] = list(dict.fromkeys(merged.get("stop_keywords", []) + t.get("stop_keywords", [])))
+        merged["protected_terms"] = list(dict.fromkeys(merged.get("protected_terms", []) + t.get("protected_terms", [])))
+        bd = merged.setdefault("brand_default", {})
+        bd["banned_phrases"] = list(dict.fromkeys(bd.get("banned_phrases", []) + t.get("banned_phrases", [])))
     from .validate import RulesError, validate_rules      # local import: validate has no config dependency
     problems = validate_rules(merged)
     if problems:
@@ -71,11 +77,30 @@ def rules() -> dict:
     return merged
 
 
+TEMPLATES_DIR = CONFIG_DIR / "templates"
+
+
+@lru_cache
+def templates() -> dict:
+    """Message templates per language, from config/templates/<lang>.yaml (validated)."""
+    from .validate import RulesError, validate_template
+    out, problems = {}, []
+    for f in sorted(TEMPLATES_DIR.glob("*.yaml")):
+        t = yaml.safe_load(f.read_text()) or {}
+        problems += validate_template(f.stem, t)
+        out[f.stem] = t
+    if "en" not in out:
+        problems.append("templates: config/templates/en.yaml (the fallback language) is missing")
+    if problems:
+        raise RulesError(f"{len(problems)} problem(s) in config/templates/:\n  - " + "\n  - ".join(problems))
+    return out
+
+
 @lru_cache
 def properties() -> dict:
     raw = yaml.safe_load((CONFIG_DIR / "properties.yaml").read_text()) or {}
     from .validate import RulesError, validate_properties
-    problems = validate_properties(raw)
+    problems = validate_properties(raw, set(templates()))
     if problems:
         raise RulesError(f"{len(problems)} problem(s) in config/properties.yaml:\n  - " + "\n  - ".join(problems))
     return {name.strip().lower(): facts for name, facts in raw.items()}

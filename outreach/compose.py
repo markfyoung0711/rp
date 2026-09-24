@@ -13,46 +13,34 @@ from datetime import date, datetime, timedelta
 from . import config
 from .normalize import Case
 
-DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-DAY_FULL = {"en": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-            "es": ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]}
-MONTHS = {"en": ["January", "February", "March", "April", "May", "June", "July", "August", "September",
-                 "October", "November", "December"],
-          "es": ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre",
-                 "octubre", "noviembre", "diciembre"]}
-OPT_OUT = {"en": {"sms": "Reply STOP to opt out.", "email": "To opt out of emails, click here or reply STOP.",
-                  "voice": "To stop these calls, press 9 or say stop."},
-           "es": {"sms": "Responde STOP para cancelar.", "email": "Para dejar de recibir correos, haz clic aquí o responde STOP.",
-                  "voice": "Para no recibir más llamadas, marque 9 o diga stop."}}
-SUPPORTED_LANGS = {"en", "es"}
+DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]     # internal codes used in facts and CTA options
 
-# Generic (non-tour) purpose lines: {name}, {prop}. No prices, no invented facts.
-PURPOSE_LINES = {
-    "en": {
-        "apply": "your application for {prop} takes just a few minutes. Ready to get started?",
-        "sign_lease": "your lease for {prop} is ready for your signature.",
-        "payment": "this is a friendly reminder about your payment for {prop}. You can take care of it online.",
-        "renewal": "we'd love to have you stay at {prop}. Your renewal options are ready to review.",
-        "maintenance": "we can help schedule your maintenance request at {prop}.",
-        "general": "we wanted to follow up about {prop}. How can we help?",
-    },
-    "es": {
-        "apply": "tu solicitud para {prop} toma solo unos minutos. ¿Listo para empezar?",
-        "sign_lease": "tu contrato de arrendamiento para {prop} está listo para firmar.",
-        "payment": "te recordamos amablemente tu pago para {prop}. Puedes hacerlo en línea.",
-        "renewal": "nos encantaría que te quedes en {prop}. Tus opciones de renovación están listas.",
-        "maintenance": "podemos ayudarte a programar tu solicitud de mantenimiento en {prop}.",
-        "general": "queríamos darte seguimiento sobre {prop}. ¿Cómo podemos ayudarte?",
-    },
-}
-SUBJECTS = {
-    "en": {"apply": "Your application for {prop}", "sign_lease": "Your {prop} lease is ready to sign",
-           "payment": "Payment reminder for {prop}", "renewal": "Your renewal options at {prop}",
-           "maintenance": "Your maintenance request at {prop}", "general": "Following up from {prop}"},
-    "es": {"apply": "Tu solicitud para {prop}", "sign_lease": "Tu contrato de {prop} está listo para firmar",
-           "payment": "Recordatorio de pago de {prop}", "renewal": "Tus opciones de renovación en {prop}",
-           "maintenance": "Tu solicitud de mantenimiento en {prop}", "general": "Seguimiento de {prop}"},
-}
+
+def T(lang: str) -> dict:
+    """The message templates for a language (config/templates/<lang>.yaml)."""
+    return config.templates()[lang]
+
+
+def opt_out(lang: str, channel: str) -> str:
+    return T(lang)["opt_out"][channel]
+
+
+def choose_language(case: Case, facts: dict | None, why: list) -> str:
+    """The recipient's language if we have templates for it and the property offers it; else the property's
+    default; else the global default. Locales like es-MX arrive here already reduced to 'es'."""
+    available = set(config.templates())
+    offered = set((facts or {}).get("languages") or available)
+    default = (facts or {}).get("default_language") or config.rules().get("default_language", "en")
+    wanted = case.language
+    if wanted in available and wanted in offered:
+        return wanted
+    chosen = default if default in available else "en"
+    reason = "has no template" if wanted not in available else "isn't offered by this property"
+    case.warnings.append(f"language {wanted!r} {reason}; wrote {T(chosen)['name']} ({chosen})")
+    why.append(f"language: {wanted!r} {reason}; used {chosen}")
+    return chosen
+
+
 SAFE_NAME = re.compile(r"^[^\W\d_][^\W\d_'’ .-]{0,29}$")   # any script's letters, plus ' ’ space . -
 
 
@@ -64,6 +52,7 @@ class Draft:
     cta: dict
     facts_used: bool
     tour_days: list | None = None   # full day names offered, in order (for the model prompt)
+    lang: str = "en"                # the language actually used
 
 
 def display_name(full: str) -> str:
@@ -90,10 +79,7 @@ def move_phrase(d: date | None, lang: str) -> str | None:
     if not d:
         return None
     part = ("early", "mid", "late")[0 if d.day <= 10 else 1 if d.day <= 20 else 2]
-    month = MONTHS[lang][d.month - 1]
-    if lang == "es":
-        return f"{ {'early': 'principios', 'mid': 'mediados', 'late': 'finales'}[part]} de {month}"
-    return f"{part}‑{month}"      # non-breaking hyphen, as in the sample ("mid‑February")
+    return T(lang)["move_timing"][part].format(month=T(lang)["months"][d.month - 1])
 
 
 def next_tour_days(facts: dict, send_at: datetime) -> list[tuple[str, date]]:
@@ -116,14 +102,13 @@ def amenity_labels(case: Case, facts: dict | None) -> list[tuple[str, str]]:
 
 
 def draft(case: Case, channel: str, send_at: datetime, why: list) -> Draft:
-    lang = case.language if case.language in SUPPORTED_LANGS else "en"
-    if lang != case.language:
-        case.warnings.append(f"language {case.language!r} has no template; wrote English")
     rule, known = config.cta_rule(case.primary_cta)
     if not known:
         why.append(f"primary_cta {case.primary_cta!r} is not mapped; used the generic '{rule['type']}' CTA")
     facts = config.property_facts(case.property_name)
-    prop_full = case.property_name or ("la propiedad" if lang == "es" else "our community")
+    lang = choose_language(case, facts, why)
+    t = T(lang)
+    prop_full = case.property_name or t["unknown_property"]
     prop = (facts or {}).get("short_name") or display_name(prop_full)
     if case.property_name and not facts:
         why.append(f"no facts on file for {case.property_name!r}; generic message with no specific claims")
@@ -133,128 +118,104 @@ def draft(case: Case, channel: str, send_at: datetime, why: list) -> Draft:
             case.gaps.append({"code": "property_facts_missing", "property": case.property_name})
     name = safe_first_name(case, why)
     link = (facts or {}).get(rule["link_key"])
-    opt_out = OPT_OUT[lang][channel]      # always included, whatever the record says
+    oo = opt_out(lang, channel)      # always included, whatever the record says
     purpose = rule["purpose"]
 
     if purpose == "tour":
-        return _tour(case, channel, send_at, lang, name, prop, facts, link, opt_out, rule)
+        d = _tour(case, channel, send_at, t, lang, name, prop, facts, link, oo, rule)
+        d.lang = lang
+        return d
 
-    line = PURPOSE_LINES[lang][purpose].format(prop=prop)
+    g = t["general"]
+    line = g["lines"][purpose].format(prop=prop)
+    Line = line[0].upper() + line[1:]
     cta = {"type": rule["type"]}
     if channel == "voice":
         # A call can't carry a link: offer to connect the caller to the team instead.
-        core = f"{'Hi' if lang == 'en' else 'Hola'} {name}, {voice_intro(facts, prop, lang)}. " + line[0].upper() + line[1:]
-        tail = ("Press 1 to be connected to our team. " if lang == "en" else "Marque 1 para hablar con nuestro equipo. ") + opt_out
+        core = g["voice_core"].format(name=name, intro=voice_intro(facts, prop, lang), Line=Line)
+        tail = g["voice_tail"].format(opt_out=oo)
         cta["options"] = ["1"]
-        return Draft(None, core, tail, cta, bool(facts))
+        return Draft(None, core, tail, cta, bool(facts), lang=lang)
     if link:
         cta["link"] = link
     if channel == "sms":
-        core = f"Hi {name}—{line}" if lang == "en" else f"Hola {name}: {line}"
-        tail = (f"{'Details' if lang == 'en' else 'Detalles'}: {link} " if link else "") + opt_out
-        return Draft(None, core, tail.strip(), cta, bool(facts))
-    subject = SUBJECTS[lang][purpose].format(prop=prop)
-    core = (f"Hi {name},\n" if lang == "en" else f"Hola {name}:\n") + line[0].upper() + line[1:]
-    action = {"en": "Continue", "es": "Continuar"}[lang]
-    tail = (f"{action} → {link}\n" if link else "") + opt_out
-    return Draft(subject, core, tail, cta, bool(facts))
+        core = g["sms_core"].format(name=name, line=line)
+        tail = ((g["sms_details"].format(link=link) + " ") if link else "") + oo
+        return Draft(None, core, tail.strip(), cta, bool(facts), lang=lang)
+    subject = g["subjects"][purpose].format(prop=prop)
+    core = g["email_core"].format(name=name, Line=Line)
+    tail = ((g["email_action"].format(link=link) + "\n") if link else "") + oo
+    return Draft(subject, core, tail, cta, bool(facts), lang=lang)
 
 
 def voice_intro(facts: dict | None, prop: str, lang: str) -> str:
-    """How an automated call identifies itself: the brand's voice_intro, else "this is <property>"."""
+    """How an automated call identifies itself: the brand's voice_intro (a string for English, or a mapping per
+    language), else the language's default "this is <property>"."""
     intro = ((facts or {}).get("brand") or {}).get("voice_intro")
-    if intro and lang == "en":
+    if isinstance(intro, dict) and intro.get(lang):
+        return intro[lang]
+    if isinstance(intro, str) and intro and lang == "en":
         return intro
-    return f"le llamamos de {prop}" if lang == "es" else f"this is {prop}"
+    return T(lang)["voice_intro_default"].format(prop=prop)
 
 
-def _tour(case, channel, send_at, lang, name, prop, facts, link, opt_out, rule) -> Draft:
+def _tour(case, channel, send_at, t, lang, name, prop, facts, link, oo, rule) -> Draft:
+    tt = t["tour"]
     cta = {"type": rule["type"]}
+    slots = next_tour_days(facts, send_at) if facts and channel in ("sms", "voice") else []
+    if slots:
+        full = [t["days"][d.weekday()] for _, d in slots]
+        this_week = all(d.isocalendar()[1] == send_at.date().isocalendar()[1] for _, d in slots)
+        when = t["this_week"] if this_week else t["coming_days"]
+        days = t["join_or"].join(full)
     if channel == "voice":
         # Automated call script: the same offer as SMS, with keypad choices instead of reply codes.
-        slots = next_tour_days(facts, send_at) if facts else []
+        intro = voice_intro(facts, prop, lang)
         if slots:
-            full = [DAY_FULL[lang][d.weekday()] for _, d in slots]
-            this_week = all(d.isocalendar()[1] == send_at.date().isocalendar()[1] for _, d in slots)
-            if lang == "es":
-                when = "esta semana" if this_week else "en los próximos días"
-                core = f"Hola {name}, {voice_intro(facts, prop, lang)}. Hay visitas disponibles {when}. ¿Le gustaría reservar el {' o el '.join(full)}?"
-                keys = ", ".join(f"marque {i + 1} para el {f}" for i, f in enumerate(full))
-                tail = f"Por favor, {keys}. {opt_out}"
-            else:
-                when = "this week" if this_week else "in the coming days"
-                core = f"Hi {name}, {voice_intro(facts, prop, lang)}. Tours are available {when}. Would you like to book a time on {' or '.join(full)}?"
-                keys = ", ".join(f"press {i + 1} for {f}" for i, f in enumerate(full))
-                tail = f"Please {keys}. {opt_out}"
+            core = tt["voice_slots"].format(name=name, intro=intro, when=when, days=days)
+            keys = ", ".join(tt["voice_key"].format(n=i + 1, day=f) for i, f in enumerate(full))
+            tail = tt["voice_slots_tail"].format(keys=keys, opt_out=oo)
             cta["options"] = [s for s, _ in slots]
             return Draft(None, core, tail, cta, bool(facts), full)
-        if lang == "es":
-            core = f"Hola {name}, {voice_intro(facts, prop, lang)}. ¿Le gustaría agendar una visita?"
-            tail = f"Marque 1 y le devolveremos la llamada con horarios. {opt_out}"
-        else:
-            core = f"Hi {name}, {voice_intro(facts, prop, lang)}. Would you like to schedule a tour?"
-            tail = f"Press 1 and we'll call you back with available times. {opt_out}"
+        core = tt["voice_noslot"].format(name=name, intro=intro)
+        tail = tt["voice_noslot_tail"].format(opt_out=oo)
         cta["options"] = ["1"]
         return Draft(None, core, tail, cta, bool(facts))
     if channel == "sms":
-        slots = next_tour_days(facts, send_at) if facts else []
         if slots:
-            full = [DAY_FULL[lang][d.weekday()] for _, d in slots]
-            this_week = all(d.isocalendar()[1] == send_at.date().isocalendar()[1] for _, d in slots)
-            opts = [s for s, _ in slots]
-            if lang == "es":
-                when = "esta semana" if this_week else "en los próximos días"
-                core = f"Hola {name}, ¡te damos la bienvenida a {prop}! Hay visitas disponibles {when}. ¿Te gustaría reservar el {' o el '.join(full)}?"
-                codes = ", ".join(f"{i + 1} para {DAY_FULL['es'][d.weekday()][:3]}" for i, (_, d) in enumerate(slots))
-                tail = f"Responde {codes}. {opt_out}"
-            else:
-                greet = "welcome to" if case.stage == "new" else "thanks for your interest in"
-                when = "this week" if this_week else "in the coming days"
-                core = f"Hi {name}—{greet} {prop}! Tours are available {when}. Would you like to book a time on {' or '.join(full)}?"
-                codes = ", ".join(f"{i + 1} for {s}" for i, s in enumerate(opts))
-                tail = f"Reply {codes}. {opt_out}"
-            cta["options"] = opts
+            greeting = tt["sms_greeting_new"] if case.stage == "new" else tt["sms_greeting_other"]
+            core = tt["sms_slots"].format(name=name, greeting=greeting, prop=prop, when=when, days=days)
+            codes = ", ".join(tt["sms_code"].format(n=i + 1, code=s, short=t["days_short"][d.weekday()])
+                              for i, (s, d) in enumerate(slots))
+            tail = tt["sms_slots_tail"].format(codes=codes, opt_out=oo)
+            cta["options"] = [s for s, _ in slots]
             return Draft(None, core, tail, cta, bool(facts), full)
-        else:
-            if lang == "es":
-                core = f"Hola {name}, gracias por tu interés en {prop}. ¿Te gustaría agendar una visita?"
-                tail = f"Responde SÍ y te enviaremos horarios. {opt_out}"
-                cta["options"] = ["SÍ"]
-            else:
-                core = f"Hi {name}—thanks for your interest in {prop}! Would you like to schedule a tour?"
-                tail = f"Reply YES and we'll text you available times. {opt_out}"
-                cta["options"] = ["YES"]
+        core = tt["sms_noslot"].format(name=name, prop=prop)
+        tail = tt["sms_noslot_tail"].format(opt_out=oo)
+        cta["options"] = [tt["sms_noslot_option"]]
         return Draft(None, core, tail, cta, bool(facts))
 
     # email
     labels = amenity_labels(case, facts)
     move = move_phrase(case.move_date, lang)
-    if lang == "es":
-        subject = f"Visita {prop}" + (f": conoce {' y '.join(b for _, b in labels)}" if labels else "")
-        parts = []
-        if move:
-            parts.append(f"Como planeas mudarte a {move}, ")
-        if labels:
-            parts.append(("aquí tienes" if move else "Aquí tienes") + f" un vistazo a nuestro {' y '.join(b for _, b in labels)}.")
-        elif move:
-            parts.append(f"es un buen momento para conocer {prop}.")
-        first = "".join(parts) or f"Nos encantaría mostrarte {prop}."
-        core = f"Hola {name}:\n{first} Agenda una visita esta semana."
-        tail = (f"Reserva aquí → {link}\n" if link else "Responde a este correo para agendar una visita.\n") + opt_out
+    form = 0 if tt.get("email_subject_label_form", "subject") == "subject" else 1
+    if labels:
+        subject = tt["email_subject_labels"].format(prop=prop, labels=t["join_subject"].join(lab[form] for lab in labels))
     else:
-        subject = f"Tour {prop}—See the {' & '.join(s for s, _ in labels)} you asked about" if labels else f"Tour {prop}—Book a visit"
-        parts = []
-        if move:
-            article = "an" if move[0].lower() in "aeiou" else "a"
-            parts.append(f"Since you’re planning {article} {move} move, ")
-        if labels:
-            parts.append(("here’s" if move else "Here’s") + f" a quick look at our {' and '.join(b for _, b in labels)}.")
-        elif move:
-            parts.append(f"now is a great time to see {prop} in person.")
-        first = "".join(parts) or f"We’d love to show you around {prop}."
-        closer = (facts or {}).get("email_closer") or "We’d love to show you around."
-        core = f"Hi {name},\n{first} {closer}"
-        tail = (f"Book now → {link}\n" if link else "Reply to this email to set up a visit.\n") + opt_out
+        subject = tt["email_subject_plain"].format(prop=prop)
+    body_labels = t["join_and"].join(b for _, b in labels)
+    parts = []
+    if move:
+        article = ("an" if move[0].lower() in "aeiou" else "a") if t.get("article_an_before_vowel") else ""
+        parts.append(tt["email_move"].format(article=article, move=move))
+    if labels:
+        parts.append((tt["email_amenities_after_move"] if move else tt["email_amenities"]).format(labels=body_labels))
+    elif move:
+        parts.append(tt["email_move_only"].format(prop=prop))
+    first = "".join(parts) or tt["email_fallback"].format(prop=prop)
+    closer = ((facts or {}).get("email_closer") if tt.get("use_property_closer") else None) or tt["email_closer_default"]
+    core = tt["email_core"].format(name=name, first=first, closer=closer)
+    tail = ((tt["email_link"].format(link=link) + "\n") if link else (tt["email_nolink"] + "\n")) + oo
     if link:
         cta["link"] = link
     return Draft(subject, core, tail, cta, bool(facts))

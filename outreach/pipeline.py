@@ -120,7 +120,7 @@ async def _process(item, use_llm: bool, model: str, now: datetime | None) -> dic
         why.append("wording: template")
 
     body = compose.assemble(channel, core, draft.tail)
-    opt_out_line = compose.OPT_OUT[case.language if case.language in compose.SUPPORTED_LANGS else "en"][channel]
+    opt_out_line = compose.opt_out(draft.lang, channel)
     problems = guards.check_message(channel, subject, body, opt_out_line)
     if problems and (subject, core) != (draft.subject, draft.core):
         why.append("guards: model version failed (" + "; ".join(problems) + "); reverted to the template")

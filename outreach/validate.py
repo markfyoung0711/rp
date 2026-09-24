@@ -140,7 +140,66 @@ def _brand_problems(b: dict, where: str) -> list[str]:
     return p
 
 
-def validate_properties(props: dict) -> list[str]:
+TEMPLATE_KEYS = {
+    "": ["language", "name", "opt_out", "days", "days_short", "months", "move_timing", "join_or", "join_and",
+         "join_subject", "this_week", "coming_days", "unknown_property", "voice_intro_default", "tour", "general"],
+    "tour": ["sms_greeting_new", "sms_greeting_other", "sms_slots", "sms_code", "sms_slots_tail", "sms_noslot",
+             "sms_noslot_tail", "sms_noslot_option", "voice_slots", "voice_key", "voice_slots_tail", "voice_noslot",
+             "voice_noslot_tail", "email_subject_labels", "email_subject_plain", "email_move", "email_amenities_after_move",
+             "email_amenities", "email_move_only", "email_fallback", "email_core", "email_closer_default", "email_link",
+             "email_nolink"],
+    "general": ["sms_core", "sms_details", "email_core", "email_action", "voice_core", "voice_tail", "lines", "subjects"],
+}
+PLACEHOLDERS = dict(name="N", prop="P", greeting="G", when="W", days="D", n=1, code="C", short="S", codes="X",
+                    opt_out="O", intro="I", day="Y", keys="K", labels="L", article="a", move="M", first="F",
+                    closer="Z", link="https://x", line="l", Line="L", month="m")
+
+
+def validate_template(lang: str, t: dict) -> list[str]:
+    """A language file must be complete, its placeholders valid, and its opt-outs usable."""
+    p, where = [], f"templates/{lang}.yaml"
+    if not re.fullmatch(r"[a-z]{2}", lang):
+        p.append(f"{where}: the file name must be a two-letter language code")
+    for section, keys in TEMPLATE_KEYS.items():
+        block = t if not section else t.get(section, {})
+        for k in keys:
+            if k not in (block or {}):
+                p.append(f"{where}: missing {section + '.' if section else ''}{k}")
+    oo = t.get("opt_out") or {}
+    for ch in ("sms", "email", "voice"):
+        if not isinstance(oo.get(ch), str) or not oo[ch].strip():
+            p.append(f"{where}: opt_out.{ch} is required")
+    if isinstance(oo.get("sms"), str) and "STOP" not in oo["sms"]:
+        p.append(f"{where}: opt_out.sms must include the STOP keyword (carrier requirement)")
+    for k, n in (("days", 7), ("days_short", 7), ("months", 12)):
+        if not (isinstance(t.get(k), list) and len(t[k]) == n):
+            p.append(f"{where}: {k} must list {n} names")
+    for key in ("early", "mid", "late"):
+        if "{month}" not in str((t.get("move_timing") or {}).get(key, "")):
+            p.append(f"{where}: move_timing.{key} must contain {{month}}")
+    general = t.get("general") or {}
+    for purpose in KNOWN_PURPOSES - {"tour"}:
+        for group in ("lines", "subjects"):
+            if purpose not in (general.get(group) or {}):
+                p.append(f"{where}: general.{group}.{purpose} is missing")
+
+    def walk(v, path):
+        if isinstance(v, dict):
+            for k, x in v.items():
+                walk(x, f"{path}.{k}" if path else k)
+        elif isinstance(v, str) and "{" in v:
+            try:
+                v.format(**PLACEHOLDERS)
+            except (KeyError, IndexError, ValueError) as e:
+                p.append(f"{where}: {path} has an unknown or broken placeholder ({e})")
+    walk({k: v for k, v in t.items() if k not in ("stop_keywords", "protected_terms", "banned_phrases")}, "")
+    for k in ("stop_keywords", "protected_terms", "banned_phrases"):
+        if not isinstance(t.get(k, []), list):
+            p.append(f"{where}: {k} must be a list")
+    return p
+
+
+def validate_properties(props: dict, languages: set | None = None) -> list[str]:
     p = []
     for name, f in (props or {}).items():
         if not isinstance(f, dict):
@@ -163,4 +222,13 @@ def validate_properties(props: dict) -> list[str]:
                 p.append(f"properties.{name}.amenities.{a}: must be [label in subject, label in body]")
         if isinstance(f.get("brand"), dict):
             p += _brand_problems(f["brand"], f"properties.{name}.brand")
+        langs = f.get("languages")
+        if langs is not None:
+            if not (isinstance(langs, list) and langs and all(isinstance(x, str) for x in langs)):
+                p.append(f"properties.{name}.languages: must be a list of language codes")
+            elif languages is not None and set(langs) - languages:
+                p.append(f"properties.{name}.languages: {sorted(set(langs) - languages)} have no template in config/templates/")
+        dl = f.get("default_language")
+        if dl is not None and (not isinstance(dl, str) or (langs and dl not in langs) or (languages is not None and dl not in languages)):
+            p.append(f"properties.{name}.default_language: {dl!r} must be one of its languages and have a template")
     return p

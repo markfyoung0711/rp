@@ -5,6 +5,8 @@
 Oak Ridge Apartments:
   short_name: Oak Ridge
   timezone: America/Chicago
+  languages: [en, es]            # languages this property communicates in (each needs config/templates/<lang>.yaml)
+  default_language: en           # used when the recipient's language isn't offered
   tour_days: [Thu, Fri]          # days tours run; the bot offers the next ones after the send date
   tour_link: https://oakridge.example/tour
   apply_link: https://oakridge.example/apply

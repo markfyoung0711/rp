@@ -1,0 +1,77 @@
+# English message templates. {placeholders} are filled by outreach/compose.py.
+# Adding a language = adding a file like this one (validated on load; see outreach/validate.py).
+language: en
+name: English
+
+opt_out:
+  sms: "Reply STOP to opt out."
+  email: "To opt out of emails, click here or reply STOP."
+  voice: "To stop these calls, press 9 or say stop."
+
+days: [Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday]
+days_short: [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
+months: [January, February, March, April, May, June, July, August, September, October, November, December]
+move_timing: {early: "early‑{month}", mid: "mid‑{month}", late: "late‑{month}"}
+article_an_before_vowel: true
+join_or: " or "
+join_and: " and "
+join_subject: " & "
+this_week: "this week"
+coming_days: "in the coming days"
+unknown_property: "our community"
+voice_intro_default: "this is {prop}"
+
+tour:
+  sms_greeting_new: "welcome to"
+  sms_greeting_other: "thanks for your interest in"
+  sms_slots: "Hi {name}—{greeting} {prop}! Tours are available {when}. Would you like to book a time on {days}?"
+  sms_code: "{n} for {code}"
+  sms_slots_tail: "Reply {codes}. {opt_out}"
+  sms_noslot: "Hi {name}—thanks for your interest in {prop}! Would you like to schedule a tour?"
+  sms_noslot_tail: "Reply YES and we'll text you available times. {opt_out}"
+  sms_noslot_option: "YES"
+  voice_slots: "Hi {name}, {intro}. Tours are available {when}. Would you like to book a time on {days}?"
+  voice_key: "press {n} for {day}"
+  voice_slots_tail: "Please {keys}. {opt_out}"
+  voice_noslot: "Hi {name}, {intro}. Would you like to schedule a tour?"
+  voice_noslot_tail: "Press 1 and we'll call you back with available times. {opt_out}"
+  email_subject_labels: "Tour {prop}—See the {labels} you asked about"
+  email_subject_label_form: subject      # which amenity label to use in the subject: subject or body
+  email_subject_plain: "Tour {prop}—Book a visit"
+  email_move: "Since you’re planning {article} {move} move, "
+  email_amenities_after_move: "here’s a quick look at our {labels}."
+  email_amenities: "Here’s a quick look at our {labels}."
+  email_move_only: "now is a great time to see {prop} in person."
+  email_fallback: "We’d love to show you around {prop}."
+  email_core: "Hi {name},\n{first} {closer}"
+  email_closer_default: "We’d love to show you around."
+  use_property_closer: true
+  email_link: "Book now → {link}"
+  email_nolink: "Reply to this email to set up a visit."
+
+general:
+  sms_core: "Hi {name}—{line}"
+  sms_details: "Details: {link}"
+  email_core: "Hi {name},\n{Line}"
+  email_action: "Continue → {link}"
+  voice_core: "Hi {name}, {intro}. {Line}"
+  voice_tail: "Press 1 to be connected to our team. {opt_out}"
+  lines:
+    apply: "your application for {prop} takes just a few minutes. Ready to get started?"
+    sign_lease: "your lease for {prop} is ready for your signature."
+    payment: "this is a friendly reminder about your payment for {prop}. You can take care of it online."
+    renewal: "we'd love to have you stay at {prop}. Your renewal options are ready to review."
+    maintenance: "we can help schedule your maintenance request at {prop}."
+    general: "we wanted to follow up about {prop}. How can we help?"
+  subjects:
+    apply: "Your application for {prop}"
+    sign_lease: "Your {prop} lease is ready to sign"
+    payment: "Payment reminder for {prop}"
+    renewal: "Your renewal options at {prop}"
+    maintenance: "Your maintenance request at {prop}"
+    general: "Following up from {prop}"
+
+# Compliance words in this language are added to the lists in rules.yaml (English ones live there).
+stop_keywords: []
+protected_terms: []
+banned_phrases: []

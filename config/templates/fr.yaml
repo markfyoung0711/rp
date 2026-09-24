@@ -1,0 +1,78 @@
+# French message templates. Added as a file only: no code change (see en.yaml for the structure).
+language: fr
+name: Français
+
+opt_out:
+  sms: "Répondez STOP pour vous désinscrire."
+  email: "Pour ne plus recevoir nos e-mails, cliquez ici ou répondez STOP."
+  voice: "Pour ne plus recevoir ces appels, appuyez sur 9 ou dites stop."
+
+days: [lundi, mardi, mercredi, jeudi, vendredi, samedi, dimanche]
+days_short: [lun, mar, mer, jeu, ven, sam, dim]
+months: [janvier, février, mars, avril, mai, juin, juillet, août, septembre, octobre, novembre, décembre]
+move_timing: {early: "début {month}", mid: "mi-{month}", late: "fin {month}"}
+article_an_before_vowel: false
+join_or: " ou "
+join_and: " et "
+join_subject: " et "
+this_week: "cette semaine"
+coming_days: "dans les prochains jours"
+unknown_property: "notre résidence"
+voice_intro_default: "ici {prop}"
+
+tour:
+  sms_greeting_new: "bienvenue à"
+  sms_greeting_other: "merci de votre intérêt pour"
+  sms_slots: "Bonjour {name}, {greeting} {prop} ! Des visites sont possibles {when}. Souhaitez-vous réserver {days} ?"
+  sms_code: "{n} pour {short}"
+  sms_slots_tail: "Répondez {codes}. {opt_out}"
+  sms_noslot: "Bonjour {name}, merci de votre intérêt pour {prop} ! Souhaitez-vous planifier une visite ?"
+  sms_noslot_tail: "Répondez OUI et nous vous enverrons les créneaux disponibles. {opt_out}"
+  sms_noslot_option: "OUI"
+  voice_slots: "Bonjour {name}, {intro}. Des visites sont possibles {when}. Souhaitez-vous réserver {days} ?"
+  voice_key: "appuyez sur {n} pour {day}"
+  voice_slots_tail: "Veuillez {keys}. {opt_out}"
+  voice_noslot: "Bonjour {name}, {intro}. Souhaitez-vous planifier une visite ?"
+  voice_noslot_tail: "Appuyez sur 1 et nous vous rappellerons avec les créneaux disponibles. {opt_out}"
+  email_subject_labels: "Visitez {prop} : découvrez {labels}"
+  email_subject_label_form: body
+  email_subject_plain: "Visitez {prop}"
+  email_move: "Comme vous prévoyez de déménager {move}, "
+  email_amenities_after_move: "voici un aperçu de notre {labels}."
+  email_amenities: "Voici un aperçu de notre {labels}."
+  email_move_only: "c'est le bon moment pour visiter {prop}."
+  email_fallback: "Nous serions ravis de vous faire visiter {prop}."
+  email_core: "Bonjour {name},\n{first} {closer}"
+  email_closer_default: "Réservez une visite cette semaine."
+  use_property_closer: false
+  email_link: "Réserver → {link}"
+  email_nolink: "Répondez à cet e-mail pour organiser une visite."
+
+general:
+  sms_core: "Bonjour {name}, {line}"
+  sms_details: "Détails : {link}"
+  email_core: "Bonjour {name},\n{Line}"
+  email_action: "Continuer → {link}"
+  voice_core: "Bonjour {name}, {intro}. {Line}"
+  voice_tail: "Appuyez sur 1 pour parler à notre équipe. {opt_out}"
+  lines:
+    apply: "votre demande pour {prop} ne prend que quelques minutes. Prêt à commencer ?"
+    sign_lease: "votre bail pour {prop} est prêt à être signé."
+    payment: "petit rappel concernant votre paiement pour {prop}. Vous pouvez le régler en ligne."
+    renewal: "nous serions ravis que vous restiez à {prop}. Vos options de renouvellement sont prêtes."
+    maintenance: "nous pouvons planifier votre demande d'entretien à {prop}."
+    general: "nous revenons vers vous au sujet de {prop}. Comment pouvons-nous vous aider ?"
+  subjects:
+    apply: "Votre demande pour {prop}"
+    sign_lease: "Votre bail {prop} est prêt à être signé"
+    payment: "Rappel de paiement pour {prop}"
+    renewal: "Vos options de renouvellement à {prop}"
+    maintenance: "Votre demande d'entretien à {prop}"
+    general: "Suivi de {prop}"
+
+stop_keywords: [ARRET, ARRÊT, ARRETER, ARRÊTER, DESABONNER, DÉSABONNER, "DESINSCRIRE", "DÉSINSCRIRE"]
+protected_terms: [enfant, bébé, enceinte, grossesse, religion, église, mosquée, synagogue, handicap, fauteuil roulant,
+                  race, ethni, origine nationale, immigr, nationalité, citoyenn, orientation sexuelle, marié, célibataire,
+                  personne âgée, retraité, adultes seulement, sans enfants, couples]
+banned_phrases: [agissez maintenant, offre limitée, dépêchez-vous, garanti, meilleure offre, pas cher, urgent,
+                 dernière chance, offre exclusive]

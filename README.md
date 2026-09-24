@@ -76,6 +76,7 @@ These were inferred from two samples and stated rather than hidden. The details 
 - **Property facts** (tour days, amenities, links) come from `config/properties.yaml`. For an unknown property the message makes no specific claims.
 - **Horizon threshold:** 45 days to move-in (samples: 32 → short).
 - **No-send shape:** as above. The assignment doesn't define one.
+- **Languages:** every word the bot writes lives in `config/templates/<lang>.yaml` (English, Spanish, French), including that language's STOP keywords, fair-housing terms and banned phrases. **Adding a language means adding a file; the validator checks it's complete.** Each property can declare `languages` and a `default_language` in `properties.yaml`. The recipient's language is used if the property offers it, otherwise the property's default.
 - **Brand style** isn't defined by the assignment. It's implemented as a per-property brand profile (`config/properties.yaml`, defaults in `config/rules.yaml`) plus a check on every message.
 - **Consent:** only an explicit opt-in counts; missing or unclear consent means no send.
 - **Voice:** the samples never show a voice answer, so its shape is inferred from SMS: `channel: "voice"`, no subject, a short call script with keypad options (`cta.options`) and a spoken opt-out ("press 9 or say stop"), sent at 10:00 local. The caller identifies itself with the brand's `voice_intro`. Automated calls have stricter consent rules (TCPA), so voice consent is required, as for every channel.

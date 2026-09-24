@@ -378,3 +378,41 @@ def test_spanish_opt_out_and_fair_housing_terms():
     es["input"]["language"] = "es"
     out = run(json.dumps(es))[0]
     assert out["next_message"] and out["meta"]["required_states"]["brand_style_applied"]
+
+
+def _rec(lang, prop="Oak Ridge Apartments", idx=0):
+    r = json.loads(SAMPLES.splitlines()[idx])
+    r.pop("expected")
+    r["input"]["language"] = lang
+    r["input"]["property_name"] = prop
+    return r
+
+
+def test_language_is_chosen_from_templates_and_property_settings():
+    # Oak Ridge offers en + es: French isn't offered, so its default (English) is used, with a warning
+    out = run(json.dumps(_rec("fr")))[0]
+    assert out["next_message"]["body"].startswith("Hi Taylor") and any("isn't offered" in w for w in out["meta"]["warnings"])
+    # a property with no facts offers every language that has a template: French is written
+    out = run(json.dumps(_rec("fr", "Maison Verte Apartments")))[0]
+    assert out["next_message"]["body"].startswith("Bonjour Taylor") and "STOP" in out["next_message"]["body"]
+    # a locale reduces to its language; a language with no template falls back to English
+    assert run(json.dumps(_rec("es-MX")))[0]["next_message"]["body"].startswith("Hola Taylor")
+    out = run(json.dumps(_rec("de", "Haus Apartments")))[0]
+    assert out["next_message"]["body"].startswith("Hi Taylor") and any("has no template" in w for w in out["meta"]["warnings"])
+    # French opt-out words stop messages too
+    r = _rec("fr", "Maison Verte Apartments")
+    r["input"]["last_message"] = "ARRÊT svp"
+    assert run(json.dumps(r))[0]["next_message"] is None
+
+
+def test_template_validator_catches_incomplete_languages():
+    from outreach.validate import validate_template
+    from outreach import config
+    good = config.templates()["fr"]
+    assert validate_template("fr", good) == []
+    bad = json.loads(json.dumps(good))
+    del bad["tour"]["sms_slots"]
+    bad["opt_out"]["sms"] = "Répondez NON"
+    bad["general"]["lines"]["payment"] = "paiement {montant}"
+    problems = " | ".join(validate_template("fr", bad))
+    assert "missing tour.sms_slots" in problems and "STOP keyword" in problems and "placeholder" in problems

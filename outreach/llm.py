@@ -59,7 +59,7 @@ def facts_for_prompt(case: Case, channel: str, draft: compose.Draft) -> dict:
     allowed["first_name"] = compose.safe_first_name(case, [])
     return {
         "channel": channel,
-        "language": case.language,
+        "language": draft.lang,
         "persona": case.persona,
         "lifecycle_stage": case.stage,
         "property": facts.get("short_name") or case.property_name,
@@ -67,7 +67,7 @@ def facts_for_prompt(case: Case, channel: str, draft: compose.Draft) -> dict:
         "reply_options_appended_by_system": draft.cta.get("options"),
         "offered_tour_days": draft.tour_days,
         "link_appended_by_system": bool(draft.cta.get("link")),
-        "move_timing": compose.move_phrase(case.move_date, case.language if case.language in compose.SUPPORTED_LANGS else "en"),
+        "move_timing": compose.move_phrase(case.move_date, draft.lang),
         "amenities_on_file_matching_interests": [b for _, b in compose.amenity_labels(case, facts)],
         "profile": allowed,
     }

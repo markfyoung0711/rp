@@ -180,13 +180,15 @@ plans/                  spec, design, decision register, reviews</pre>
 <div class="tablewrap"><table><thead><tr><th>File or setting</th><th>What it controls</th><th>Who changes it</th></tr></thead><tbody>
 <tr><td><code>config/rules.yaml</code></td><td>The defaults: send hours per channel, legal window, day offsets, next-action rules, STOP keywords, CTA table, AI prompt allow-list, protected terms, <b>brand defaults</b></td><td>Operations or compliance, reviewed like code</td></tr>
 <tr><td><code>config/learned.yaml</code></td><td>Rules learned from labelled examples; <b>overrides</b> the matching defaults</td><td>Generated only: <code>uv run learn.py &lt;labelled files&gt; --write</code> (never hand-edited, never from a hold-out)</td></tr>
-<tr><td><code>config/properties.yaml</code></td><td>Per property: name, time zone, tour days, links, amenities, and its own <b>brand profile</b> (display name, voice intro, banned phrases), which <b>overrides</b> the brand defaults</td><td>Property or marketing team</td></tr>
+<tr><td><code>config/templates/&lt;lang&gt;.yaml</code></td><td>Every word the bot writes in that language: greetings, CTA lines, subjects, opt-outs per channel, call scripts, dates, plus the language’s STOP keywords, fair-housing terms and banned phrases. English, Spanish and French today; <b>adding a language means adding a file</b></td><td>Marketing or localization team, with compliance review</td></tr>
+<tr><td><code>config/properties.yaml</code></td><td>Per property: name, time zone, tour days, links, amenities, the <b>languages</b> it communicates in and its <code>default_language</code>, and its own <b>brand profile</b> (display name, voice intro, banned phrases), which <b>overrides</b> the brand defaults</td><td>Property or marketing team</td></tr>
 <tr><td>Environment settings</td><td><code>BOT_RULES=hand</code> (ignore learned rules), <code>BOT_LLM_BUDGET_USD</code> / <code>BOT_ALLOW_API_COST</code> (AI spend), <code>BOT_LLM_CONCURRENCY</code></td><td>Whoever runs the bot</td></tr>
 </tbody></table></div>
 <p style="margin-top:12px"><b>Override order:</b> <code>rules.yaml</code> defaults → <code>learned.yaml</code> → a property’s own <code>brand</code> block (for branding). Legal limits can only be narrowed: send hours must stay inside 8:00–21:00, and STOP must always work.</p>
+<p><b>Language choice:</b> the recipient’s language if the property offers it, otherwise the property’s default. A locale like <code>es-MX</code> counts as <code>es</code>.</p>
 <p><b>Validate after any change:</b></p>
 <pre>uv run python scripts/validate_rules.py --brand</pre>
-<p>This checks every file (types, ranges, legal window, STOP, what may reach the AI prompt, time zones, links, brand settings), then renders a tour message for every property on SMS, email and voice and brand-checks each one. If anything is invalid, the bot and <code>learn.py</code> refuse to run and list the problems.</p>
+<p>This checks every file (types, ranges, legal window, STOP, what may reach the AI prompt, time zones, links, brand settings, and that every language file is complete with valid placeholders and opt-outs), then renders a tour message for every property on SMS, email and voice and brand-checks each one. If anything is invalid, the bot and <code>learn.py</code> refuse to run and list the problems.</p>
 
 <h2>Built vs designed</h2>
 <div class="tablewrap"><table><thead><tr><th>Built and runnable</th><th>Designed, not built</th></tr></thead><tbody>

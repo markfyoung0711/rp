@@ -1,4 +1,4 @@
-"""Validate the configuration: rules, learned rules, property facts and branding. Exit 0 if valid, 1 if not.
+"""Validate the configuration: rules, learned rules, language templates, property facts and branding. Exit 0 if valid, 1 if not.
 
   uv run python scripts/validate_rules.py            # check every file
   uv run python scripts/validate_rules.py --brand    # also render a message per property and channel, and brand-check it
@@ -63,8 +63,15 @@ def main() -> int:
     except RulesError as e:
         print(f"✗ rules      INVALID\n{e}")
         ok = False
+    try:
+        langs = config.templates()
+        print(f"✓ templates  {', '.join(f'{k} ({v['name']})' for k, v in langs.items())}: complete, placeholders valid, "
+              "opt-outs present")
+    except RulesError as e:
+        print(f"✗ templates  INVALID\n{e}")
+        return 1
     raw = yaml.safe_load((config.CONFIG_DIR / "properties.yaml").read_text()) or {}
-    prob = validate_properties(raw)
+    prob = validate_properties(raw, set(langs))
     if prob:
         print("✗ properties INVALID (facts or brand)\n  - " + "\n  - ".join(prob))
         ok = False
