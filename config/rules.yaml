@@ -26,6 +26,12 @@ next_action:
 
 stop_keywords: [STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT, OPTOUT, "OPT OUT", REVOKE]
 
+# Used when a record has no primary_cta.
+default_cta_by_persona:
+  prospect: book_tour
+  applicant: apply_now
+  default: general
+
 # primary_cta -> output cta.type, purpose and the facts key holding its link.
 cta:
   book_tour:            {type: schedule_tour,        purpose: tour,        link_key: tour_link}
@@ -38,6 +44,7 @@ cta:
   pay_rent:             {type: pay_rent,             purpose: payment,     link_key: portal_link}
   renew_lease:          {type: renew_lease,          purpose: renewal,     link_key: portal_link}
   schedule_maintenance: {type: schedule_maintenance, purpose: maintenance, link_key: portal_link}
+  general:              {type: contact_us,           purpose: general,     link_key: contact_link}
   default:              {type: contact_us,           purpose: general,     link_key: contact_link}
 
 # Profile keys the message writer may use. Everything else in the profile is withheld

@@ -14,7 +14,8 @@ from . import config
 
 KNOWN_TOP = {"task_id", "persona", "lifecycle_stage", "consent", "channel_preferences", "input",
              "assertions", "thresholds", "expected"}
-KNOWN_INPUT = {"property_name", "move_date_target", "last_interaction", "timezone", "language", "profile"}
+KNOWN_INPUT = {"property_name", "move_date_target", "last_interaction", "timezone", "language", "profile",
+               "last_message", "inbound_message", "reply", "last_reply", "last_inbound"}
 TRUE_WORDS = {"true", "yes", "y", "1", "opted_in", "opt_in", "granted", "allowed", "on"}
 TZ_ALIASES = {"cst": "America/Chicago", "cdt": "America/Chicago", "central": "America/Chicago",
               "est": "America/New_York", "edt": "America/New_York", "eastern": "America/New_York",
@@ -74,6 +75,18 @@ def _deep_find(obj, names: set, depth: int = 0):
         if found is not None:
             return found
     return None
+
+
+def _scan_opt_ins(obj, out: dict, depth: int = 0) -> None:
+    """Level 3: collect any `<channel>_opt_in` style keys wherever they are nested."""
+    if depth > 4 or not isinstance(obj, dict):
+        return
+    for k, v in obj.items():
+        m = re.fullmatch(r"(sms|text|email|e_?mail|voice|phone|call)_?(opt_?in|opted_?in|consent)", k.lower())
+        if m and not isinstance(v, (dict, list)):
+            out[_channel(m.group(1).replace("e_mail", "email"))] = _truthy(v)
+        elif isinstance(v, dict):
+            _scan_opt_ins(v, out, depth + 1)
 
 
 def _parse_consent(raw, warnings: list) -> dict:
@@ -164,6 +177,10 @@ def normalize(rec: dict) -> Case:
 
     consent = _parse_consent(rec["consent"] if "consent" in rec else get("consent", "consents", "opt_ins", "permissions"), warnings)
     if not consent:
+        _scan_opt_ins(rec, consent)
+        if consent:
+            warnings.append("consent found in nested opt-in fields")
+    if not consent:
         warnings.append("no consent information found; nothing may be sent")
 
     prefs_raw = rec.get("channel_preferences") or get("channel_preferences", "preferred_channels", "preferred_channel", "channels")
@@ -190,6 +207,10 @@ def normalize(rec: dict) -> Case:
     primary_cta = constraints.get("primary_cta") or get("primary_cta", "cta", "goal", "intent")
     if isinstance(primary_cta, dict):
         primary_cta = primary_cta.get("type")
+    if not primary_cta:
+        by_persona = config.rules()["default_cta_by_persona"]
+        primary_cta = by_persona.get(persona, by_persona["default"])
+        warnings.append(f"primary_cta missing; used {primary_cta!r} for persona {persona!r}")
 
     first = profile.get("first_name") or get("first_name", "firstname", "given_name")
     if not first:

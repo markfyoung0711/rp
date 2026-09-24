@@ -142,14 +142,17 @@ def _tour(case, channel, send_at, lang, name, prop, facts, link, opt_out, rule) 
         slots = next_tour_days(facts, send_at) if facts else []
         if slots:
             full = [DAY_FULL[lang][d.weekday()] for _, d in slots]
+            this_week = all(d.isocalendar()[1] == send_at.date().isocalendar()[1] for _, d in slots)
             opts = [s for s, _ in slots]
             if lang == "es":
-                core = f"Hola {name}, ¡te damos la bienvenida a {prop}! Hay visitas disponibles esta semana. ¿Te gustaría reservar el {' o el '.join(full)}?"
+                when = "esta semana" if this_week else "en los próximos días"
+                core = f"Hola {name}, ¡te damos la bienvenida a {prop}! Hay visitas disponibles {when}. ¿Te gustaría reservar el {' o el '.join(full)}?"
                 codes = ", ".join(f"{i + 1} para {DAY_FULL['es'][d.weekday()][:3]}" for i, (_, d) in enumerate(slots))
                 tail = f"Responde {codes}. {opt_out}"
             else:
                 greet = "welcome to" if case.stage == "new" else "thanks for your interest in"
-                core = f"Hi {name}—{greet} {prop}! Tours are available this week. Would you like to book a time on {' or '.join(full)}?"
+                when = "this week" if this_week else "in the coming days"
+                core = f"Hi {name}—{greet} {prop}! Tours are available {when}. Would you like to book a time on {' or '.join(full)}?"
                 codes = ", ".join(f"{i + 1} for {s}" for i, s in enumerate(opts))
                 tail = f"Reply {codes}. {opt_out}"
             cta["options"] = opts
