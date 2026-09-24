@@ -84,6 +84,7 @@ def main() -> None:
     ap.add_argument("--now", help="reference time, ISO 8601; sends never land before it")
     ap.add_argument("--compare", action="store_true", help="compare with each record's expected block, if present")
     ap.add_argument("--quiet", action="store_true", help="print only the JSONL block")
+    ap.add_argument("--only", help="show only records whose task_id contains this text (for demos)")
     args = ap.parse_args()
 
     try:
@@ -106,6 +107,12 @@ def main() -> None:
     if not records:
         sys.exit("No records found in the input.")
 
+    if args.only:
+        keep = [i for i, r in enumerate(records)
+                if args.only in (r.get("task_id") or r.get("Task_ID") or "" if isinstance(r, dict) else r.task_id)]
+        records = [records[i] for i in keep]
+        if not records:
+            sys.exit(f"No record's task_id contains {args.only!r}.")
     results = asyncio.run(run(records, args))
     seen: dict[str, int] = {}
     for r in results:
