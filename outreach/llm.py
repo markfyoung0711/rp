@@ -137,6 +137,9 @@ def paid_calls_allowed() -> bool:
     return os.environ.get("BOT_ALLOW_API_COST") == "1"
 
 
+# Set by bot.py after the cost gate approves this run within its --budget.
+BUDGET_APPROVED = False
+
 _client = None
 _semaphore: asyncio.Semaphore | None = None
 
@@ -148,7 +151,7 @@ async def write(case: Case, channel: str, draft: compose.Draft, model: str, why:
 
     if cache_file.exists():
         result = json.loads(cache_file.read_text())
-    elif os.environ.get("BOT_ALLOW_API_COST") != "1":
+    elif not (paid_calls_allowed() or BUDGET_APPROVED):
         # No-cost mode (default): never make a paid API call; cached answers are still used.
         why.append("wording: no cached model answer and paid API calls are off "
                    "(set BOT_ALLOW_API_COST=1 to allow); used the template")

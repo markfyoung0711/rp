@@ -9,6 +9,7 @@ import argparse
 import asyncio
 import difflib
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -87,10 +88,18 @@ def cost_gate(records: list, args) -> None:
     usd = llm.cost_usd(args.model, tokens_in, tokens_out)
     usd_txt = f"about ${usd:.4f}" if usd is not None else "an unknown amount (no price on file for this model)"
     per = f" (~${usd / len(pending):.5f} per call)" if usd else ""
+    budget = args.budget if args.budget is not None else float(os.environ.get("BOT_LLM_BUDGET_USD") or 0)
+    if budget > 0 and usd is not None and usd <= budget:
+        print(f"[cost] {len(pending)} paid call(s) to {args.model}, estimated ${usd:.4f} "
+              f"(within the ${budget:.2f} budget).", file=sys.stderr)
+        llm.BUDGET_APPROVED = True
+        return
     if llm.paid_calls_allowed():
-        print(f"[cost] BOT_ALLOW_API_COST=1: making {len(pending)} paid call(s) to {args.model}, "
+        print(f"[cost] BOT_ALLOW_API_COST=1 (no limit): making {len(pending)} paid call(s) to {args.model}, "
               f"~{tokens_in:,} input + ~{tokens_out:,} output tokens, {usd_txt}.", file=sys.stderr)
         return
+    over = (f"\n  Budget:     ${budget:.2f}, so this run is OVER the budget by about ${usd - budget:.4f}"
+            if budget > 0 and usd is not None else "")
     bar = "=" * 78
     print(f"""{bar}
 STOPPED: this run would incur AI API cost, and paid calls are turned off.
@@ -100,11 +109,12 @@ STOPPED: this run would incur AI API cost, and paid calls are turned off.
   Would make: {len(pending)} new API call(s), out of {len(records)} record(s)
               (records that won't be sent, and cached answers, are free)
   Estimated:  ~{tokens_in:,} input tokens + ~{tokens_out:,} output tokens
-  Cost avoided: {usd_txt}{per}
+  Cost avoided: {usd_txt}{per}{over}
 
 Nothing was processed and no API call was made.
   - Run without --llm: template mode is free, offline, deterministic, and matches the samples exactly.
-  - To accept the cost, re-run with BOT_ALLOW_API_COST=1 (and ANTHROPIC_API_KEY set).
+  - To allow spending up to a limit: --budget 0.10 (or BOT_LLM_BUDGET_USD=0.10); runs over the limit still stop.
+  - To accept any cost: BOT_ALLOW_API_COST=1. Both need ANTHROPIC_API_KEY.
 Estimates are local (no API call) and use list prices; actual billing may differ slightly.
 {bar}""", file=sys.stderr)
     sys.exit(3)
@@ -121,6 +131,7 @@ def main() -> None:
     ap.add_argument("--now", help="reference time, ISO 8601; sends never land before it")
     ap.add_argument("--compare", action="store_true", help="compare with each record's expected block, if present")
     ap.add_argument("--quiet", action="store_true", help="print only the JSONL block")
+    ap.add_argument("--budget", type=float, help="--llm: allow paid calls if the estimated cost is at most this many USD")
     ap.add_argument("--only", help="show only records whose task_id contains this text (for demos)")
     args = ap.parse_args()
 

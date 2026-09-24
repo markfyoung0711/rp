@@ -137,6 +137,10 @@ def main(full: bool) -> int:
     check("P0", "--llm without permission stops loudly (exit 3) and names the cost avoided",
           nocost.returncode == 3 and "Cost avoided: about $" in nocost.stderr and "BEGIN OUTPUT" not in nocost.stdout,
           nocost.stderr[-300:])
+    over = sh("uv", "run", "bot.py", "-i", str(EDGES), "--llm", "--budget", "0.001", "--quiet",
+              env={"BOT_ALLOW_API_COST": "", "ANTHROPIC_API_KEY": "bad"})
+    check("P0", "--budget: a run over the limit stops (exit 3) and says by how much",
+          over.returncode == 3 and "OVER the budget" in over.stderr, over.stderr[-300:])
 
     if full:
         # E. LLM offline fallback: a bad key must still produce complete output (auth fails -> no charge)
