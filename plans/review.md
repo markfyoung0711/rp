@@ -1,7 +1,7 @@
 # Critical Reviews
 
 - **Review 1 of 2:** Claude Sonnet 5 (independent session), 2026-09-24, below.
-- **Review 2 of 2:** SME review, 2026-09-24, [at the end](#review-2-of-2--sme-review), followed by our reconciliation of the two reviews.
+- **Review 2 of 2:** SME review by **Gemini (Google AI Mode)**, 2026-09-24, [at the end](#review-2-of-2--sme-review), followed by our reconciliation of the two reviews.
 
 ---
 
@@ -396,7 +396,7 @@ If you tell me how many hours remain and whether any code exists, I can trim thi
 
 ---
 
-# Review 2 of 2 — SME review
+# Review 2 of 2 — SME review (Gemini, Google AI Mode)
 
 > Pasted verbatim, 2026-09-24.
 
@@ -534,3 +534,31 @@ The two blueprints agree on the pipeline: ingest → consent/channel gate → se
 | Concurrency | Not specified | asyncio, all records in parallel | asyncio in LLM mode (template mode is instant) |
 | Export | Combined output file plus a readable per-record view | `--output results.jsonl` | Both |
 | Done when | Both samples match on the controllable fields; 8–10 extra cases, no crash; deterministic | No crashes on bad rows | Review 1's criteria |
+
+---
+
+# Review 2 reference implementation: `bot.py` (Gemini)
+
+> Saved unchanged as [`reference/bot_gemini.py`](../reference/bot_gemini.py). Our code review, 2026-09-24. The send-time results below come from running its functions against `sample.jsonl`.
+
+**What it gets right:** a stateless async batch; a consent gate that short-circuits before the LLM; channel = first preferred channel with consent; send time from `last_interaction` plus the `dayN` offset in local time; SMS 09:00 / email 10:00; per-record try/except around the LLM; temperature 0; the samples as few-shot examples.
+
+**Problems, by severity:**
+
+| # | Severity | Problem | Evidence / effect |
+|---|---|---|---|
+| G-01 | Blocker | **Fails sample 1's `send_at`:** no roll-forward, so `day0` gives `2025-12-08T09:00`, which is before the 09:04 last interaction | Ran it: `prospect_welcome_day0` → `2025-12-08T09:00:00-06:00`, expected `2025-12-09T09:00:00-06:00`. Sample 2 matches. |
+| G-02 | Blocker | **Model `claude-3-5-sonnet-20241022` is retired:** every LLM call errors, so every record that should get a message comes out as an `error` | Use Haiku 4.5 (speed) or Sonnet 5 |
+| G-03 | Blocker | **No template fallback:** with no key, a network failure or an API error, the record returns `error` with no message | D-038 needs a template baseline that always works |
+| G-04 | Blocker | **The whole record goes into the prompt, including `expected`** if the hold-out records carry it. The model can copy the answer (contaminating the evaluation), and every profile field is sent (PII, protected-class details) | Send only allow-listed fields; strip `expected` |
+| G-05 | Major | **One malformed JSONL line crashes the whole batch:** `json.loads` in `main()` is outside any try. Only JSONL is accepted (not a JSON array or pretty-printed objects) | D-038 input rule |
+| G-06 | Major | **Opt-out wording, CTA and `next_action` are written by the LLM:** not deterministic, and not guaranteed | D-025 / D-038: fixed code. `next_action` should follow the new → cadence (short/long by 45 days) rule, otherwise follow-up 3 |
+| G-07 | Major | **Invented facts:** falls back to `https://<property>.example/tour`, and the SMS options default to `["Thu","Fri"]` | D-024: take them from the property-facts file, or send a generic message |
+| G-08 | Major | **Voice can be selected** (if `voice_opt_in` is true and first in preferences), then gets an email-style link CTA | Skip voice (D-038) |
+| G-09 | Major | **No STOP keyword gate, and no guards on the output:** fair housing is left to prompt wording only; no check for opt-out present, PII or protected-class words | D-033, D-034 |
+| G-10 | Minor | Send-time parse fails on fractional seconds and silently returns the raw UTC string as `send_at` | `...15:04:00.123Z` → returned unchanged |
+| G-11 | Minor | A missing `last_interaction` defaults to `utcnow()`, so the output isn't reproducible; `utcnow` is deprecated | Use an explicit `--now` |
+| G-12 | Minor | JSON is parsed out of free text, not through structured output (tool/JSON schema) | Fragile |
+| G-13 | Minor | No `--output` file, no per-record readable view, no latency measurement; the output key is named `expected` | D-038 export rules |
+
+**Verdict:** a useful sketch that confirms the pipeline shape, but **not a safe base for the demo**. As written it fails sample 1, and every LLM call fails on the retired model. We build our own to D-038 and borrow its structure (the async gather, the consent loop, the few-shot block).
