@@ -151,6 +151,16 @@ def print_stats(results: list[dict], records: list, args, wall_s: float, input_n
     print(f"  Latency      per record: avg {sum(lat) / max(n, 1):.1f} ms, p50 {_pct(lat, 0.5):.1f}, p95 {p95:.1f}, max {max(lat or [0]):.1f} ms"
           f" | batch {wall_s:.2f} s ({n / wall_s if wall_s else 0:.0f} records/s)")
     print(f"               p95 target {p95_target} ms{' (from input thresholds)' if 'p95_latency_ms' in th else ''}: {verdict(p95 <= p95_target)}")
+    states: dict[str, list[int]] = {}
+    for r in sent:
+        for k, v in (r["meta"].get("required_states") or {}).items():
+            states.setdefault(k, [0, 0])
+            states[k][0] += bool(v)
+            states[k][1] += 1
+    if states:
+        ok_all = all(a == b for a, b in states.values())
+        print("  Req. states  " + ", ".join(f"{k} {a}/{b}" for k, (a, b) in states.items())
+              + f" (from the records' required_states): {verdict(ok_all)}")
     print(f"  Safety       {len(violations)} violation(s) in {len(sent)} sent message(s); max allowed {safety_max}: "
           f"{verdict(len(violations) <= safety_max)}")
     for v in violations[:5]:

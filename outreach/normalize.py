@@ -46,6 +46,7 @@ class Case:
     primary_cta: str | None
     include_opt_out: bool
     expected: dict | None
+    required_states: list = field(default_factory=list)
     warnings: list = field(default_factory=list)
 
 
@@ -283,5 +284,7 @@ def normalize(rec: dict) -> Case:
         primary_cta=str(primary_cta) if primary_cta else None,
         include_opt_out=bool(constraints.get("include_opt_out_instructions", True)),
         expected=rec.get("expected") if isinstance(rec.get("expected"), dict) else None,
+        required_states=[str(x) for x in ((rec.get("assertions") or {}).get("required_states") or []) if isinstance(x, str)]
+        if isinstance(rec.get("assertions"), dict) else [],
         warnings=warnings,
     )

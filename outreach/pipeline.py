@@ -41,6 +41,16 @@ def pending_llm_call(item, model: str, now: datetime | None):
         return None
 
 
+REQUIRED_STATES = ("consent_verified", "fair_housing_check_passed", "brand_style_applied")
+
+
+def _required_states(case: Case, consent: bool, fair: bool, brand: bool) -> dict:
+    """The samples' `assertions.required_states`, each marked as verified (True) or not."""
+    wanted = case.required_states or list(REQUIRED_STATES)
+    values = {"consent_verified": consent, "fair_housing_check_passed": fair, "brand_style_applied": brand}
+    return {s: values.get(s, False) for s in wanted}
+
+
 def _no_channel_reason(case: Case) -> str:
     """Say precisely why no channel was usable (the decision table showed one reason wasn't enough)."""
     supported = compose.config.rules()["channels"]["supported"]
@@ -116,6 +126,19 @@ async def _process(item, use_llm: bool, model: str, now: datetime | None) -> dic
                         action="human_review", **base_meta)
     why.append("guards: opt-out present, no contact details, no protected-class terms")
 
+    # Brand style (required state brand_style_applied): model text that breaks it falls back to the template.
+    facts = compose.config.property_facts(case.property_name)
+    brand_problems = guards.check_brand(channel, subject, body, facts, case.property_name)
+    if brand_problems and (subject, body) != (draft.subject, compose.assemble(channel, draft.core, draft.tail)):
+        why.append("brand: model version off-brand (" + "; ".join(brand_problems) + "); reverted to the template")
+        subject, body = draft.subject, compose.assemble(channel, draft.core, draft.tail)
+        brand_problems = guards.check_brand(channel, subject, body, facts, case.property_name)
+    if brand_problems:
+        return _no_send(case.task_id, "brand check failed: " + "; ".join(brand_problems), why, case.warnings,
+                        action="human_review", **base_meta)
+    brand_src = "property brand profile" if (facts or {}).get("brand") else "default brand profile"
+    why.append(f"brand: {brand_src} applied (name, tone, no banned phrases, no emoji or shouting, length)")
+
     purpose = compose.config.cta_rule(case.primary_cta)[0]["purpose"]
     return {
         "task_id": case.task_id,
@@ -128,7 +151,7 @@ async def _process(item, use_llm: bool, model: str, now: datetime | None) -> dic
         },
         "next_action": decide.next_action(case, purpose, send_at, why),
         "why": why,
-        "meta": {**base_meta, "warnings": case.warnings},
+        "meta": {**base_meta, "required_states": _required_states(case, True, True, True), "warnings": case.warnings},
     }
 
 

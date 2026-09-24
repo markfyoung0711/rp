@@ -70,3 +70,41 @@ def check_message(channel: str, subject: str | None, body: str, opt_out_line: st
     if channel == "email" and not subject:
         problems.append("email needs a subject")
     return problems
+
+
+EMOJI = re.compile("[\U0001F300-\U0001FAFF\U00002600-\U000027BF\U0001F000-\U0001F2FF]")
+CAPS_WORD = re.compile(r"\b[A-Z]{4,}\b")
+CAPS_OK = {"STOP", "STOPALL", "HELP", "YES", "SMS", "HTTPS", "HTTP"}
+
+
+def brand_for(facts: dict | None) -> dict:
+    """The brand profile for a property: rules.yaml brand_default, overridden by the property's brand block."""
+    brand = dict(config.rules().get("brand_default") or {})
+    brand.update((facts or {}).get("brand") or {})
+    return brand
+
+
+def check_brand(channel: str, subject: str | None, body: str, facts: dict | None, full_name: str | None) -> list[str]:
+    """Problems with brand style (the samples' `brand_style_applied`). Empty list means the brand was applied."""
+    brand = brand_for(facts)
+    text = f"{subject or ''} {URL.sub('', body)}"
+    low = text.lower()
+    problems = []
+    hits = [p for p in brand.get("banned_phrases", []) if p.lower() in low]
+    if hits:
+        problems.append("off-brand phrases: " + ", ".join(hits))
+    if not brand.get("emoji_allowed", False) and EMOJI.search(text):
+        problems.append("emoji not allowed by the brand")
+    if text.count("!") > int(brand.get("max_exclamations", 2)):
+        problems.append("too many exclamation marks")
+    if channel == "sms" and len(body) > int(brand.get("max_sms_chars", 320)):
+        problems.append(f"SMS longer than {brand.get('max_sms_chars', 320)} characters")
+    if not brand.get("shouting_allowed", False):
+        shouting = [w for w in CAPS_WORD.findall(text) if w not in CAPS_OK]
+        if shouting:
+            problems.append("ALL-CAPS words: " + ", ".join(sorted(set(shouting))[:3]))
+    display = brand.get("display_name") or (facts or {}).get("short_name")
+    if brand.get("use_display_name", True) and display and full_name and full_name != display and full_name in text:
+        problems.append(f"uses the full property name instead of the brand name {display!r}")
+    return problems
+

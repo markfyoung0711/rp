@@ -57,3 +57,15 @@ protected_terms: [kid, kids, child, children, baby, babies, pregnan, family size
   handicap, race, racial, ethnic, national origin, immigra, nationality, citizenship,
   gender, sexual orientation, married, single mom, single dad, elderly, senior, retiree,
   famil, adults only, adult only, no kids, couples, singles, young professionals, empty nester]
+
+# Brand style (the samples' required state "brand_style_applied"). The default applies to any property
+# without its own `brand` block in properties.yaml; a property's block overrides these keys.
+brand_default:
+  emoji_allowed: false
+  max_exclamations: 2          # per message
+  max_sms_chars: 320           # two SMS segments
+  shouting_allowed: false      # no ALL-CAPS words (STOP, SMS, CTA codes and short acronyms excepted)
+  use_display_name: true       # say "Oak Ridge", not "Oak Ridge Apartments", when a display name exists
+  banned_phrases: [act now, limited time, hurry, don't miss out, guaranteed, best deal, cheap, urgent,
+                   last chance, exclusive offer, click here now, luxury living at its finest]
+

@@ -138,6 +138,10 @@ To prove, run: `uv run bot.py -i tests/edge_cases.jsonl --only kids`
 A: "Only the first name leaves the bot, because the expected output needs it. Twenty rental-PII categories are planted in tests: 81 items withheld, 0 leaked. No balances or account numbers ever go in a text or email."
 To prove, run: `uv run bot.py -i tests/pii_cases.jsonl`
 
+**Q: What does "brand_style_applied" mean, and do you check it?**
+A: "The samples require it, but the assignment never defines it. I made it concrete: each property has a brand profile (the name it goes by, banned sales phrases, no emoji or shouting, length limits), and every message is checked against it. AI wording that breaks it falls back to the template. Every output reports the three required states from their data (consent verified, fair housing passed, brand applied), and the stats count them."
+To prove, run: `uv run bot.py -i plans/sample.jsonl` (see "brand:" in each why, and "Req. states" in RUN STATS)
+
 **Q: Bias in the model?**
 A: "The model can't affect who gets contacted, when, or what's offered. Code decides that. It only phrases a sentence from allow-listed facts."
 

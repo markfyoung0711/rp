@@ -41,7 +41,9 @@ Input can be JSONL, a JSON array, a wrapper object, or pretty-printed objects, i
 | Next action | code | A new lead starts a cadence (`short` if ≤ 45 days to move-in, else `long`); otherwise follow up in 3 days |
 | Wording | template (default) or Claude (`--llm`) | Property claims come only from `config/properties.yaml` |
 | CTA and opt-out | code | Fixed text per channel and language; never written by the model |
-| Guards | code | Opt-out present, no phone or email in the body, no protected-class terms, unsafe names → "there" |
+| Guards | code | Opt-out present, no phone or email in the body, no protected-class terms, no money or account numbers, unsafe names → "there" |
+| Brand style | code | The property's brand profile (display name, no banned phrases, emoji or shouting, length limits); AI text that breaks it falls back to the template |
+| Required states | code | Each sent message reports the records' `required_states` (consent_verified, fair_housing_check_passed, brand_style_applied) as verified; RUN STATS shows the pass counts |
 
 The rules live in [`config/rules.yaml`](config/rules.yaml). Each table has a default row for values the bot hasn't seen before.
 
@@ -71,6 +73,7 @@ These were inferred from two samples and stated rather than hidden. The details 
 - **Property facts** (tour days, amenities, links) come from `config/properties.yaml`. For an unknown property the message makes no specific claims.
 - **Horizon threshold:** 45 days to move-in (samples: 32 → short).
 - **No-send shape:** as above. The assignment doesn't define one.
+- **Brand style** isn't defined by the assignment. It's implemented as a per-property brand profile (`config/properties.yaml`, defaults in `config/rules.yaml`) plus a check on every message.
 - **Consent:** only an explicit opt-in counts; missing or unclear consent means no send.
 - **Voice:** modeled but not built; skipped, with a reason.
 - **AI disclosure:** not added to message bodies, because the expected outputs don't include it; it would be a policy setting.

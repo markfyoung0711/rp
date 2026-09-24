@@ -15,3 +15,9 @@ Oak Ridge Apartments:
     fitness: [fitness rooms, 24/7 fitness center]
     gym: [fitness rooms, 24/7 fitness center]
   email_closer: Book a visit this week to compare floor plans.
+  brand:                         # overrides brand_default in rules.yaml
+    display_name: Oak Ridge
+    voice: warm, brief, first-name greeting
+    banned_phrases: [act now, limited time, hurry, don't miss out, guaranteed, best deal, cheap, urgent,
+                     last chance, exclusive offer, luxury]
+

@@ -236,3 +236,17 @@ def test_channel_decision_table_matches_policy_for_all_120_combinations():
     import subprocess
     r = subprocess.run(["uv", "run", "python", "scripts/decision_table.py"], cwd=ROOT, capture_output=True, text=True)
     assert r.returncode == 0 and "120 match the policy" in r.stdout, r.stdout[-400:]
+
+
+def test_brand_style_is_checked_and_required_states_reported():
+    from outreach import config, guards
+    facts = config.property_facts("Oak Ridge Apartments")
+    ok = "Hi Taylor—welcome to Oak Ridge! Reply STOP to opt out."
+    assert guards.check_brand("sms", None, ok, facts, "Oak Ridge Apartments") == []
+    assert any("off-brand" in p for p in guards.check_brand("sms", None, "Act now, limited time at Oak Ridge!", facts, "Oak Ridge Apartments"))
+    assert any("emoji" in p for p in guards.check_brand("sms", None, "Hi Taylor 🏠 welcome", facts, None))
+    assert any("ALL-CAPS" in p for p in guards.check_brand("sms", None, "Hi Taylor, BOOK TODAY", facts, None))
+    assert any("full property name" in p for p in guards.check_brand("sms", None, "Welcome to Oak Ridge Apartments", facts, "Oak Ridge Apartments"))
+    for out in run(SAMPLES):
+        assert out["meta"]["required_states"] == {"consent_verified": True, "fair_housing_check_passed": True,
+                                                  "brand_style_applied": True}
