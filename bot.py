@@ -342,4 +342,16 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (KeyboardInterrupt, BrokenPipeError):
+        sys.exit(130)
+    except SystemExit:
+        raise
+    except Exception as e:  # noqa: BLE001 -- never show a raw traceback in a demo; say what to do instead
+        print(f"\nThe bot hit an unexpected problem: {type(e).__name__}: {e}", file=sys.stderr)
+        print("No partial results were written. To capture it for fixing, run:", file=sys.stderr)
+        argv = sys.argv[1:]
+        src = next((argv[i + 1] for i, a in enumerate(argv[:-1]) if a in ("-i", "--input")), "<input file>")
+        print(f"  uv run python scripts/report.py {src}", file=sys.stderr)
+        sys.exit(5)

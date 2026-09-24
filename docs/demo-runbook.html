@@ -248,10 +248,28 @@ footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);color:v
   </tbody>
 </table></div>
 
-<h2>If something breaks</h2>
-<ul class="check">
+<h2>If something looks wrong: fix it live with Claude Code</h2>
+<div class="calm">They may throw a bad record at it on purpose. A calm, methodical fix is a strong demo, and it shows how you work with an AI coding assistant.</div>
+<ol class="steps">
+  <li><div class="step-body"><h3>Name it</h3>
+    <div class="say"><div class="tag">Say</div><p>“Interesting, let’s see what the bot says about it.”</p></div></div></li>
+  <li><div class="step-body"><h3>Read the bot’s own explanation</h3>
+    <p class="show">Most surprises aren’t errors: a no-send always has a reason, and warnings say what was repaired or assumed. Isolate the record:</p>
+    <div class="cmd"><pre>uv run bot.py -i holdout.jsonl --only &lt;task_id&gt;</pre><button type="button" data-copy>Copy</button></div></div></li>
+  <li><div class="step-body"><h3>Capture it</h3>
+    <div class="cmd"><pre>uv run python scripts/report.py holdout.jsonl --only &lt;task_id&gt; --note "expected X, got Y"</pre><button type="button" data-copy>Copy</button></div>
+    <p class="show">Prints a paste-ready report (version, command, input record, output, stats) and saves <code>out/report.txt</code>. If the bot itself fails, it prints a one-line problem plus this exact command, never a raw traceback.</p></div></li>
+  <li><div class="step-body"><h3>Paste it into the Claude Code session and fix it together</h3>
+    <p class="show">In the <code>~/realpage</code> Claude Code terminal: paste the report and say what you expected. Claude reproduces it, proposes the smallest fix, re-runs the samples and tests, and commits. Most fixes are one row in <code>config/rules.yaml</code>.</p>
+    <div class="say"><div class="tag">Say</div><p>“This is how I work: the AI does the legwork, but every fix must reproduce the problem first, keep both samples matching, and pass the tests before it’s committed. The same rules I used all morning.”</p></div>
+    <div class="cmd"><pre>uv run python scripts/run_checks.py</pre><button type="button" data-copy>Copy</button></div></div></li>
+  <li><div class="step-body"><h3>If there’s no time to fix</h3>
+    <div class="say"><div class="tag">Say</div><p>“I’d log it and fix it after: here’s the report. The bot failed safely, with no send and a reason, which is the behavior I want when it’s unsure.”</p></div></div></li>
+</ol>
+<p class="show" style="margin-top:12px"><b>Evidence of how you worked with AI:</b> <code>plans/worklog.md</code> (timeline), <code>plans/decisions.md</code> (52 decisions, each with its origin), <code>plans/review.md</code> (two independent AI reviews and how they were reconciled), and the git history on GitHub.</p>
+<ul class="check" style="margin-top:14px">
   <li><input type="checkbox" id="b1"><label for="b1"><b>No network:</b> nothing changes. Template mode needs none.</label></li>
-  <li><input type="checkbox" id="b2"><label for="b2"><b>Anything else live:</b> show the pre-run <code>out/</code> files and explain calmly. Handling a surprise well is part of what’s tested.</label></li>
+  <li><input type="checkbox" id="b2"><label for="b2"><b>Terminal trouble:</b> show the pre-run <code>out/</code> files and keep talking.</label></li>
 </ul>
 
 <footer>Repo markfyoung0711/rp · README.md, plans/demo-tests.md, plans/decisions.md (D-001 to D-049). This page is also versioned at docs/demo-runbook.html.</footer>

@@ -14,6 +14,7 @@ uv run bot.py -i holdout.jsonl -o out/holdout.jsonl        # a hold-out file -> 
 uv run bot.py --paste -o out/holdout.jsonl                 # paste records, then Ctrl+D
 uv run learn.py plans/sample.jsonl --eval                  # learn the rules from labelled examples; leave-one-out test
 uv run python scripts/decision_table.py                     # all 120 consent × preference cases vs the policy
+uv run python scripts/report.py <file> [--only ID]         # paste-ready problem report (out/report.txt)
 uv run pytest                                              # tests
 uv run python scripts/run_checks.py --full                 # the code-review checklist, automated (33 checks)
 uv run python scripts/gen_records.py 100 > /tmp/p.jsonl    # generate test records (performance: plans/performance.md)
