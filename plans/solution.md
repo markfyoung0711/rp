@@ -83,7 +83,7 @@ Input can be JSONL, a JSON array, a wrapper object, or pretty-printed objects, i
 | STOP / opt-out | code | Any opt-out flag or STOP keyword → no send, and no model call |
 | Channel | code | The first preferred channel with consent: SMS, email or voice (an automated call script) |
 | Send time | code | Local `last_interaction` + the `dayN` in the task_id (else a stage default), at 09:00 for SMS or 10:00 for email; moved to the next day if that time isn't after the last interaction |
-| Next action | code | A new lead starts a cadence (`short` if ≤ 45 days to move-in, else `long`); otherwise follow up in 3 days |
+| Next action | code | A new lead starts a cadence (`short` if ≤ 50 days to move-in, else `long`; 50 is learned from the samples, the hand-written default is 45); otherwise follow up in 3 days |
 | Wording | template (default) or Claude (`--llm`) | Property claims come only from `config/properties.yaml` |
 | CTA and opt-out | code | Fixed text per channel and language; never written by the model |
 | Guards | code | Opt-out present, no phone or email in the body, no protected-class terms, no money or account numbers, unsafe names → "there" |
@@ -116,7 +116,7 @@ These were inferred from two samples and stated rather than hidden. The details 
 
 - **Send time:** the rule above; 09:00/10:00 are per-channel settings in `config/rules.yaml`. Use `--now` to set a reference time.
 - **Property facts** (tour days, amenities, links) come from `config/properties.yaml`. For an unknown property the message makes no specific claims.
-- **Horizon threshold:** 45 days to move-in (samples: 32 → short).
+- **Horizon threshold:** 50 days to move-in, learned from the samples (32 days → short, 68 days → long; the true cut-off lies in 32–67). The hand-written default is 45.
 - **No-send shape:** as above. The assignment doesn't define one.
 - **Languages:** every word the bot writes lives in `config/templates/<lang>.yaml` (English, Spanish, French), including that language's STOP keywords, fair-housing terms and banned phrases. **Adding a language means adding a file; the validator checks it's complete.** Each property can declare `languages` and a `default_language` in `properties.yaml`. The recipient's language is used if the property offers it, otherwise the property's default.
 - **Brand style** isn't defined by the assignment. It's implemented as a per-property brand profile (`config/properties.yaml`, defaults in `config/rules.yaml`) plus a check on every message.

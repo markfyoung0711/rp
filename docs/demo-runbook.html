@@ -227,11 +227,14 @@ footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);color:v
 </ul>
 
 <h2>Assumptions to say out loud</h2>
+<p class="show">Where the spec was silent, these are the choices I made. Practise reading them once before the interview; in the demo, say them before you’re asked.</p>
 <ol class="plain">
-  <li><b>Send time</b> = last contact + the day number in the task ID, at 09:00 for SMS or 10:00 for email, moved to the next day if already past. Inferred from two samples; configurable.</li>
-  <li><b>Channel</b> = the first preferred channel with consent. Voice sends an automated call script (its shape is inferred; the samples show none).</li>
-  <li><b>Next action:</b> a new lead starts a sequence (short if ≤ 45 days to move-in, else long); anyone else gets a follow-up in 3 days.</li>
-  <li><b>Property details</b> come from one config file, never invented.</li>
+  <li><b>Send time</b> = last contact + the day number in the task ID, at 09:00 for SMS, 10:00 for email or voice, moved to the next day if already past. Inferred from two samples; configurable.</li>
+  <li><b>Channel</b> = the first preferred channel with consent. Voice sends an automated call script; its shape is inferred, because the samples show none.</li>
+  <li><b>Next action:</b> a new lead starts a welcome sequence, short if the move-in is within <b>50 days</b> (learned from the samples: 32 was short, 68 was long) and long otherwise; anyone else gets a follow-up in 3 days.</li>
+  <li><b>Property details</b> (tour days, amenities, links) come from one config file, never invented. An unknown property gets a generic message, the default brand, and a flagged configuration gap.</li>
+  <li><b>Brand style</b> isn’t defined in the spec, so I modelled it as a per-property brand profile with a check on every message.</li>
+  <li><b>Language:</b> the recipient’s, if the property offers it; otherwise the property’s default. English, Spanish and French templates exist.</li>
   <li><b>No-send shape</b> (<code>next_message: null</code> plus a reason) is my choice; the spec doesn’t define one.</li>
   <li><b>Personal data:</b> only the first name, in the greeting. <code>task_id</code> is the only join key; identity belongs to the system of record.</li>
 </ol>
