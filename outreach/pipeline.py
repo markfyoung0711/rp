@@ -48,7 +48,7 @@ def _no_send(task_id: str, reason: str, why: list, warnings: list, action: str =
         "next_message": None,
         "next_action": {"type": action, "reason": reason},
         "why": why,
-        "meta": {"warnings": warnings, **meta},
+        "meta": {**meta, "warnings": warnings},      # same key order as a send
     }
 
 
