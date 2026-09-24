@@ -1,0 +1,27 @@
+# Learned by `uv run learn.py plans/sample.jsonl` (do not edit; re-run learn.py)
+# learned from 2 labelled example(s)
+# send hour      email 10:00  (1/1 example(s))
+# send hour      sms 09:00  (1/1 example(s))
+# day offset     send date = last interaction + dayN, rolled forward if passed: 2/2 example(s) agree
+# channel        first preferred channel with consent reproduces 2/2 example(s)
+# CTA mapping    book_tour → schedule_tour  (2/2)
+# CTA shape      email: link  (1 example(s))
+# CTA shape      sms: options  (1 example(s))
+# next action    stage 'new' → start_cadence  (1 example(s))
+# next action    stage 'open' → follow_up_in_days  (1 example(s))
+# follow-up      3 day(s)  (1 example(s))
+# horizon        short ≤ 32 days, long ≥ 68 days → threshold 50 days (midpoint; true value lies in 32–67)
+channels:
+  send_hour:
+    email: 10
+    sms: 9
+cta:
+  book_tour:
+    link_key: tour_link
+    purpose: tour
+    type: schedule_tour
+next_action:
+  follow_up_days: 3
+  horizon_threshold_days: 50
+  new_stages:
+  - new

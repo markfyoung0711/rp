@@ -10,6 +10,14 @@ Every command runs from the project folder (`~/realpage`) with no network, unles
 | 2 | `uv run bot.py -i plans/sample.jsonl --only day0` | The "why" trail for one decision: consent → SMS; Dec 8 09:04 + 0 days, past 09:00 → Dec 9 09:00; 32 days → short horizon |
 | 3 | Run #1 twice with `-o out/a.jsonl` and `-o out/b.jsonl`, then `cmp out/a.jsonl out/b.jsonl` | Deterministic: byte-identical output |
 
+## 1b. Learning from the data
+
+| # | Command | What it shows |
+|---|---|---|
+| L1 | `uv run learn.py plans/sample.jsonl` | Each rule inferred from the 2 samples, with the number of examples supporting it; the horizon threshold learned as 50 days (was hand-set to 45) |
+| L2 | `uv run learn.py plans/sample.jsonl --eval` | Leave-one-out: 0/2. One example can't teach the other's rules, which proves the rules come from the data |
+| L3 | `uv run learn.py plans/sample.jsonl tests/labelled_extra.jsonl --eval` | Two more examples → **the rules change** (threshold 50 → 36; open +3 → +2 days) and leave-one-out predicts both samples correctly |
+
 ## 2. Decisions on cases the samples don't show (`tests/edge_cases.jsonl`)
 
 | # | Command | What it shows |
@@ -67,4 +75,4 @@ Every command runs from the project folder (`~/realpage`) with no network, unles
 | 27 | `uv run pytest` | Unit tests: samples, edge cases, determinism, input formats, garbage, binary refusal |
 | 28 | `uv run python scripts/run_checks.py --full` | The code-review checklist, automated: 29 checks, including a clean-clone install and the cost guard |
 
-**Suggested live order (about 5 minutes):** 1 → 2 → 8 → 4 → 17 → 20 → 22 → 24, then the hold-out itself.
+**Suggested live order (about 6 minutes):** 1 → L1 → L3 → 2 → 8 → 4 → 17 → 20 → 22 → 24, then the hold-out itself.

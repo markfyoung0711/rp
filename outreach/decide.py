@@ -90,13 +90,14 @@ def send_time(case: Case, channel: str, now: datetime | None, why: list) -> date
 def next_action(case: Case, purpose: str, send_at: datetime | None, why: list) -> dict:
     rules = config.rules()["next_action"]
     if case.stage in rules["new_stages"]:
-        if case.move_date and send_at:
+        threshold = rules.get("horizon_threshold_days")
+        if case.move_date and send_at and threshold is not None:
             days = (case.move_date - send_at.date()).days
-            horizon = "short" if days <= rules["horizon_threshold_days"] else "long"
-            basis = f"{days} days to move-in (threshold {rules['horizon_threshold_days']})"
+            horizon = "short" if days <= threshold else "long"
+            basis = f"{days} days to move-in (threshold {threshold})"
         else:
             horizon = "short"
-            basis = "no move date; defaulted to short"
+            basis = "no move date or no learned threshold; defaulted to short"
         topic = "welcome" if purpose == "tour" else purpose
         name = f"{case.persona}_{topic}_{horizon}_horizon"
         why.append(f"next action: new lead -> start cadence {name} ({basis})")

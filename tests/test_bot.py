@@ -173,3 +173,25 @@ def test_stats_never_crash_on_any_fixture():
               "tests/perf_100.jsonl", "tests/garbage_utf16.jsonl"):
         r = subprocess.run(["uv", "run", "bot.py", "-i", f], cwd=ROOT, capture_output=True, text=True)
         assert r.returncode == 0 and "RUN STATS" in r.stdout, (f, r.stderr[-300:])
+
+
+def test_rules_are_learned_from_labelled_examples():
+    from outreach import config
+    from outreach.learn import learn
+    samples = [json.loads(line) for line in SAMPLES.splitlines() if line.strip()]
+    extra = [json.loads(line) for line in (ROOT / "tests" / "labelled_extra.jsonl").read_text().splitlines() if line.strip()]
+    try:
+        config.use_rules("neutral", {})
+        learned, _ = learn(samples)
+        assert learned["channels"]["send_hour"] == {"sms": 9, "email": 10}
+        assert learned["next_action"]["horizon_threshold_days"] == 50       # 32 short vs 68 long
+        assert learned["next_action"]["follow_up_days"] == 3
+        more, _ = learn(samples + extra)                                   # more examples -> the rules change
+        assert more["next_action"]["horizon_threshold_days"] == 36          # 32 short vs 40 long
+        assert more["send_time"]["stage_default_offset_days"]["open"] == 2
+        config.use_rules("neutral", learned)                               # neutral + learned reproduces the samples
+        for rec in samples:
+            out = run(json.dumps({k: v for k, v in rec.items() if k != "expected"}))[0]
+            assert out["next_message"] == rec["expected"]["next_message"] and out["next_action"] == rec["expected"]["next_action"]
+    finally:
+        config.use_rules("hand", None)

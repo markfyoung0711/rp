@@ -4,6 +4,7 @@
   uv run bot.py --input holdout.jsonl --output out/holdout.jsonl
   uv run bot.py --paste --output out/holdout.jsonl        (paste, then Ctrl+D)
   add --llm to have Claude write the wording (the decisions stay in code)
+Rules: config/rules.yaml, overridden by config/learned.yaml (written by `uv run learn.py <labelled files> --write`).
 """
 import argparse
 import asyncio
@@ -19,7 +20,7 @@ from pathlib import Path
 
 from outreach import llm
 from outreach.llm import DEFAULT_MODEL
-from outreach import guards, pii
+from outreach import config, guards, pii
 from outreach.pipeline import pending_llm_call, process
 from outreach.reader import ReadError, UnsupportedInput, decode_bytes, read_batch
 
@@ -140,6 +141,7 @@ def print_stats(results: list[dict], records: list, args, wall_s: float, input_n
           + (f", {repaired} repaired" if repaired else "") + f", {warned} with warnings")
     for note in input_notes:
         print(f"               note: {note[:100]}")
+    print(f"  Rules        {config.rules_source()}")
     print(f"  Decisions    send {len(sent)} (" + ", ".join(f"{k} {v}" for k, v in channels.most_common()) + ")"
           + f" | do not send {len(nosend)}" + (" (" + ", ".join(f"{k}: {v}" for k, v in reasons.most_common()) + ")" if nosend else ""))
     print("  Next action  " + ", ".join(f"{k} {v}" for k, v in actions.most_common()))

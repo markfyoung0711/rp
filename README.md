@@ -12,6 +12,7 @@ uv run bot.py -i plans/sample.jsonl --compare              # the two samples, co
 uv run bot.py -i tests/edge_cases.jsonl                    # 16 unseen-style cases (Levels 1-3)
 uv run bot.py -i holdout.jsonl -o out/holdout.jsonl        # a hold-out file -> an output file
 uv run bot.py --paste -o out/holdout.jsonl                 # paste records, then Ctrl+D
+uv run learn.py plans/sample.jsonl --eval                  # learn the rules from labelled examples; leave-one-out test
 uv run pytest                                              # tests
 uv run python scripts/run_checks.py --full                 # the code-review checklist, automated (29 checks)
 uv run python scripts/gen_records.py 100 > /tmp/p.jsonl    # generate test records (performance: plans/performance.md)
@@ -42,6 +43,14 @@ Input can be JSONL, a JSON array, a wrapper object, or pretty-printed objects, i
 | Guards | code | Opt-out present, no phone or email in the body, no protected-class terms, unsafe names → "there" |
 
 The rules live in [`config/rules.yaml`](config/rules.yaml). Each table has a default row for values the bot hasn't seen before.
+
+## How it learns
+
+The decision rules are **learned from labelled examples**, meaning records that carry an `expected` block, not just typed in. `uv run learn.py <files>` infers each rule from the examples and prints the evidence: the send hour per channel, the day-offset rule, stage offsets, CTA mapping, next action per stage, follow-up days, and the short/long horizon threshold. `--write` saves the result to `config/learned.yaml`, which the bot then uses. RUN STATS shows which rules are active.
+
+- **From the 2 samples:** SMS 09:00 and email 10:00; dayN with roll-forward (2/2); book_tour → schedule_tour; new → start a cadence, open → follow up in 3 days; horizon threshold **50 days** (short at 32, long at 68).
+- **Add examples and the rules change:** `uv run learn.py plans/sample.jsonl tests/labelled_extra.jsonl` moves the threshold to 36 and learns +2 days for "open".
+- **Generalization is measured, not claimed:** `--eval` runs leave-one-out, learning from the other examples starting from neutral rules and predicting each one. With the 2 samples it scores 0/2, because one example can't teach the other's rules. With 4 examples, both samples are predicted correctly. The hold-out records are never learned from.
 
 ## Built vs designed
 
