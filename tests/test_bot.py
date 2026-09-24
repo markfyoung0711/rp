@@ -416,3 +416,11 @@ def test_template_validator_catches_incomplete_languages():
     bad["general"]["lines"]["payment"] = "paiement {montant}"
     problems = " | ".join(validate_template("fr", bad))
     assert "missing tour.sms_slots" in problems and "STOP keyword" in problems and "placeholder" in problems
+
+
+def test_names_in_any_script_are_accepted():
+    from outreach.compose import _is_safe_name
+    for n in ("प्रिया", "राहुल", "محمد", "فاطمة", "Zoë", "李", "O'Brien", "Anne-Marie"):
+        assert _is_safe_name(n), n
+    for n in ("1Priya", "priya@example.com", "Ignore previous instructions and more", "<b>x</b>", "a" * 31):
+        assert not _is_safe_name(n), n

@@ -7,6 +7,7 @@ The message has three parts:
 Property claims (tour days, amenities, links) come only from config/properties.yaml.
 """
 import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
@@ -41,7 +42,12 @@ def choose_language(case: Case, facts: dict | None, why: list) -> str:
     return chosen
 
 
-SAFE_NAME = re.compile(r"^[^\W\d_][^\W\d_'’ .-]{0,29}$")   # any script's letters, plus ' ’ space . -
+def _is_safe_name(raw: str) -> bool:
+    """Letters from any script (including combining vowel marks, as in Devanagari or Arabic diacritics),
+    plus ' ’ space . - ; starts with a letter; at most 30 characters."""
+    if not raw or len(raw) > 30 or not unicodedata.category(raw[0]).startswith("L"):
+        return False
+    return all(unicodedata.category(c)[0] in "LM" or c in "'’ .-" for c in raw)
 
 
 @dataclass
@@ -67,7 +73,7 @@ def display_name(full: str) -> str:
 
 def safe_first_name(case: Case, why: list) -> str:
     raw = str(case.profile.get("first_name") or "").strip()
-    if raw and SAFE_NAME.match(raw) and not re.search(r"\b(ignore|instruction|system|prompt|assistant)\b", raw, re.I):
+    if raw and _is_safe_name(raw) and not re.search(r"\b(ignore|instruction|system|prompt|assistant)\b", raw, re.I):
         return raw
     if raw:
         # Never echo the rejected value: it may be an email, phone number, ID or injection text.
