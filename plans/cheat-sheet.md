@@ -8,6 +8,50 @@
 
 ---
 
+## The design in one picture
+
+```mermaid
+flowchart TD
+    IN["Records in<br/>JSONL, JSON array, paste, messy text"] --> READ["Reader<br/>repair what it can, refuse images and binary"]
+    READ --> NORM["Normalize<br/>Levels 1-3: new values, odd formats, unknown shapes"]
+    NORM --> STOP{"STOP or opt-out?"}
+    STOP -- yes --> NOSEND["No send + reason"]
+    STOP -- no --> CHAN{"Preferred channel<br/>with consent?"}
+    CHAN -- none --> NOSEND
+    CHAN -- sms / email --> TIME["Send time<br/>last contact + dayN, channel hour, roll forward"]
+    TIME --> NEXT["Next action<br/>cadence short/long, or follow up"]
+    NEXT --> WORD{"Wording"}
+    WORD -- default --> TPL["Template<br/>free, offline, exact"]
+    WORD -- "--llm (cost-guarded)" --> LLM["Claude writes one sentence<br/>allow-listed facts, samples as examples"]
+    TPL --> GUARD["Guards<br/>opt-out, PII, fair housing, no money or IDs"]
+    LLM --> GUARD
+    GUARD -- fail --> TPL
+    GUARD --> OUT["Output per record<br/>task_id, message, next action, why"]
+    NOSEND --> OUT
+    OUT --> STATS["RUN STATS<br/>latency, safety, PII redacted, cost, match rates"]
+
+    EX["Labelled examples"] --> LEARN["learn.py<br/>infer rules with evidence, validate labels"]
+    LEARN --> RULES["Rules<br/>learned.yaml over rules.yaml defaults"]
+    RULES -.-> TIME
+    RULES -.-> NEXT
+    RULES -.-> CHAN
+
+    classDef code fill:#E3EEE9,stroke:#2E6A58,color:#1B2320
+    classDef ai fill:#F6EEDF,stroke:#8A5A12,color:#1B2320
+    classDef stop fill:#F7E7E3,stroke:#A2412F,color:#1B2320
+    class READ,NORM,STOP,CHAN,TIME,NEXT,WORD,TPL,GUARD,OUT,STATS,LEARN,RULES code
+    class LLM ai
+    class NOSEND stop
+```
+
+If the diagram doesn't render in your viewer, open the image: [`docs/design.png`](../docs/design.png).
+
+**How to read it:** green boxes are **code**: every decision, every check, and the learning. The one amber box is **AI**, and it only writes a sentence. The red box is a **no-send**, which always carries a reason. The dotted lines show learned rules feeding the decisions.
+
+**Say:** "Everything that can get you sued is green. The AI is one amber box that writes a sentence, and even its output goes through the guards, falling back to the template."
+
+---
+
 ## "What kind of AI is this?"
 
 **Q: Is this an AI agent?**
