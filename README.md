@@ -13,6 +13,7 @@ uv run bot.py -i tests/edge_cases.jsonl                    # 16 unseen-style cas
 uv run bot.py -i holdout.jsonl -o out/holdout.jsonl        # a hold-out file -> an output file
 uv run bot.py --paste -o out/holdout.jsonl                 # paste records, then Ctrl+D
 uv run pytest                                              # tests
+uv run python scripts/run_checks.py --full                 # the code-review checklist, automated (24 checks)
 ```
 
 Input can be JSONL, a JSON array, or pretty-printed objects. The screen shows each decision with its reasons, then the whole batch between `=== BEGIN OUTPUT ===` and `=== END OUTPUT ===` for copy-paste. Add `--llm` to have Claude (Haiku 4.5) write the wording; it needs `ANTHROPIC_API_KEY` and falls back to the templates if the API is unavailable.

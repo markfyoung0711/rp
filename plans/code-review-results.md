@@ -17,3 +17,7 @@
 **Checks that passed without changes:** no sample literals in code (Oak Ridge appears only in `config/properties.yaml` as property facts); channel matrix (voice first → SMS, with the skipped channel logged); no consent / null / "maybe" consent → no send; DST boundary (−05:00 after Mar 8); invalid time zone → the property's; horizon edge (45 → short, 46 → long); past or missing move date → short; resident/renewal → no tour push, no price; injection in the name or profile not repeated; unknown property → no specific claims; no PII in outputs; protected profile fields (`has_children`, `religion`) not used; bad key in `--llm` → template fallback, both samples still match; clean clone + `uv sync` → samples match; send hours inside 08:00–21:00.
 
 **Open for a human decision:** none that blocks the demo. A missing `last_interaction` uses the current time (flagged as not reproducible); `--now` makes it reproducible.
+
+## Automated re-run
+
+2026-09-24, `scripts/run_checks.py --full` (after the fixes above): **24/24 passed, 0 P0 failures.** The `run-checks` skill (`.claude/skills/run-checks/SKILL.md`) repeats this run.
