@@ -38,7 +38,7 @@ Every command runs from the project folder (`~/realpage`) with no network, unles
 
 | # | Command | What it shows |
 |---|---|---|
-| 14b | `uv run python scripts/decision_table.py` | All 120 consent × preference combinations run through the bot and checked against the written policy: 120/120; never sends without consent; precise reasons for the 48 no-sends; 11 rows flagged for an SME question. Table: `plans/decision-table-channel.md` |
+| 14b | `uv run python scripts/decision_table.py` | All 120 consent × preference combinations run through the bot and checked against the written policy: 120/120; never sends without consent; precise reasons for the 30 no-sends; 15 rows flagged for an SME question. Table: `plans/decision-table-channel.md` |
 
 ## 3. Unseen record types (Levels 1–3)
 
