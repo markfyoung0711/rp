@@ -75,6 +75,9 @@ def validate_rules(r: dict) -> list[str]:
     thr = na.get("horizon_threshold_days")
     if thr is not None and not _int(thr, 0, 365):
         p.append(f"next_action.horizon_threshold_days: {thr!r} must be a whole number of days 0-365 (or null)")
+    fu = na.get("follow_up_days_without_dayN")
+    if fu is not None and not _int(fu, 1, 60):
+        p.append(f"next_action.follow_up_days_without_dayN: {fu!r} must be a whole number of days 1-60")
     if not _int(na.get("follow_up_days"), 1, 60):
         p.append(f"next_action.follow_up_days: {na.get('follow_up_days')!r} must be a whole number of days 1-60")
 

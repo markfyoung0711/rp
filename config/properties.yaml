@@ -17,7 +17,6 @@ Oak Ridge Apartments:
     fitness: [fitness rooms, 24/7 fitness center]
     gym: [fitness rooms, 24/7 fitness center]
   email_closer: Book a visit this week to compare floor plans.
-  follow_up_days_without_dayN: 2 # follow-up days when the task_id has no dayN (else next_action.follow_up_days)
   brand:                         # overrides brand_default in rules.yaml
     display_name: Oak Ridge
     voice_intro: this is Oak Ridge Leasing   # how an automated call identifies itself

@@ -15,7 +15,7 @@ from . import config
 
 KNOWN_TOP = {"task_id", "persona", "lifecycle_stage", "consent", "channel_preferences", "input",
              "assertions", "thresholds", "expected", "_ingest"}
-KNOWN_INPUT = {"property_name", "move_date_target", "last_interaction", "timezone", "language", "profile",
+KNOWN_INPUT = {"property_name", "follow_up_days", "move_date_target", "last_interaction", "timezone", "language", "profile",
                "last_message", "inbound_message", "reply", "last_reply", "last_inbound"}
 TRUE_WORDS = {"true", "yes", "y", "1", "opted_in", "opt_in", "granted", "allowed", "on"}
 TZ_ALIASES = {"cst": "America/Chicago", "cdt": "America/Chicago", "central": "America/Chicago",
@@ -46,6 +46,7 @@ class Case:
     primary_cta: str | None
     include_opt_out: bool
     expected: dict | None
+    follow_up_days: int | None = None     # set in the input payload (input.follow_up_days or property.follow_up_days)
     required_states: list = field(default_factory=list)
     warnings: list = field(default_factory=list)
     gaps: list = field(default_factory=list)      # machine-readable configuration gaps, e.g. a property with no facts file
@@ -244,8 +245,13 @@ def normalize(rec: dict) -> Case:
     inbound = get(*INBOUND_KEYS)
 
     property_name = get("property_name", "property", "community", "building")
+    follow_up = inp.get("follow_up_days")
     if isinstance(property_name, dict):
+        follow_up = follow_up if follow_up is not None else property_name.get("follow_up_days")
         property_name = property_name.get("name")
+    if follow_up is not None and not (isinstance(follow_up, int) and not isinstance(follow_up, bool) and 1 <= follow_up <= 60):
+        warnings.append(f"follow_up_days {follow_up!r} ignored (must be a whole number of days 1-60)")
+        follow_up = None
     facts = config.property_facts(property_name)
 
     constraints = (rec.get("assertions") or {}).get("constraints") or {}
@@ -283,6 +289,7 @@ def normalize(rec: dict) -> Case:
         language=str(get("language", "lang", "locale") or "en").strip().lower()[:2],
         profile=merged_profile,
         primary_cta=str(primary_cta) if primary_cta else None,
+        follow_up_days=follow_up,
         include_opt_out=bool(constraints.get("include_opt_out_instructions", True)),
         expected=rec.get("expected") if isinstance(rec.get("expected"), dict) else None,
         required_states=[str(x) for x in ((rec.get("assertions") or {}).get("required_states") or []) if isinstance(x, str)]

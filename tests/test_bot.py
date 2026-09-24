@@ -529,3 +529,16 @@ def test_now_is_a_floor_for_the_send_time():
     # an earlier --now changes nothing
     assert _one(_sample0(), now=datetime.fromisoformat("2025-12-01T00:00:00-06:00"))["next_message"]["send_at"] \
         == "2025-12-09T09:00:00-06:00"
+
+
+def test_follow_up_days_from_input_else_default():
+    rec = json.loads(SAMPLES.splitlines()[1])
+    rec.pop("expected")
+    assert run(json.dumps(rec))[0]["next_action"] == {"type": "follow_up_in_days", "value": 3}   # dayN in task_id
+    rec["task_id"] = "prospect_long_horizon"
+    assert run(json.dumps(rec))[0]["next_action"]["value"] == 2                                   # no dayN: default
+    rec["input"]["follow_up_days"] = 4
+    assert run(json.dumps(rec))[0]["next_action"]["value"] == 4                                   # payload wins
+    rec["input"]["follow_up_days"] = "soon"
+    out = run(json.dumps(rec))[0]
+    assert out["next_action"]["value"] == 2 and any("follow_up_days" in w for w in out["meta"]["warnings"])

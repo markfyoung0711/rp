@@ -108,11 +108,16 @@ def next_action(case: Case, purpose: str, send_at: datetime | None, why: list) -
         name = f"{case.persona}_{topic}_{horizon}_horizon"
         why.append(f"next action: new lead -> start cadence {name} ({basis})")
         return {"type": "start_cadence", "name": name}
-    days = rules["follow_up_days"]
-    basis = ""
+    # Follow-up days: the input payload's value; else, with a dayN in the task_id, follow_up_days;
+    # else the property's follow_up_days_without_dayN (properties.yaml), else the rules default.
     facts = config.property_facts(case.property_name) or {}
-    if facts.get("follow_up_days_without_dayN") is not None and not re.search(r"day[_-]?\d+", case.task_id, re.IGNORECASE):
-        days = facts["follow_up_days_without_dayN"]
-        basis = " (property setting: no dayN in task_id)"
+    if case.follow_up_days is not None:
+        days, basis = case.follow_up_days, " (from the input)"
+    elif re.search(r"day[_-]?\d+", case.task_id, re.IGNORECASE):
+        days, basis = rules["follow_up_days"], ""
+    elif facts.get("follow_up_days_without_dayN") is not None:
+        days, basis = facts["follow_up_days_without_dayN"], " (property setting; no dayN in task_id)"
+    else:
+        days, basis = rules.get("follow_up_days_without_dayN", rules["follow_up_days"]), " (no dayN in task_id)"
     why.append(f"next action: stage {case.stage!r} is not new -> follow up in {days} days{basis}")
     return {"type": "follow_up_in_days", "value": days}
