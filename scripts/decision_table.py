@@ -3,7 +3,8 @@
 Writes plans/decision-table-channel.md for SME review, and checks each row against the written policy.
 Exits 1 if any row breaks the policy.
 
-  uv run python scripts/decision_table.py
+  uv run python scripts/decision_table.py          # build the table, check every row
+  uv run python scripts/decision_table.py --sme    # also print only the rows an SME must decide
 """
 import asyncio
 import copy
@@ -87,6 +88,14 @@ def main() -> int:
     print("  " + ", ".join(f"{k}: {v}" for k, v in counts.most_common()))
     print(f"  {len(review)} row(s) flagged for SME review (consented channel not in preferences)")
     print("  wrote plans/decision-table-channel.md")
+    if "--sme" in sys.argv:
+        print("\nROWS FOR SME REVIEW: consented, but the channel isn't in the preference list, so the bot doesn't send")
+        print(f"  {'#':>3}  {'preferences':<22} {'SMS':^5}{'Email':^7}{'Voice':^7} reason")
+        for i, (prefs, consent, got, reason, want, note) in enumerate(rows, 1):
+            if note:
+                yn = lambda c: "yes" if consent[c] else " - "  # noqa: E731
+                print(f"  {i:>3}  {' > '.join(prefs):<22} {yn('sms'):^5}{yn('email'):^7}{yn('voice'):^7} {reason}")
+        print("  Question for the SME: should consent alone be enough to use that channel?")
     for prefs, consent, got, want in bad[:10]:
         print(f"  ❌ prefs {prefs} consent {consent}: bot {got}, policy {want}")
     return 1 if bad else 0
