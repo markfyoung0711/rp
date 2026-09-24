@@ -61,6 +61,7 @@ class Draft:
     tail: str
     cta: dict
     facts_used: bool
+    tour_days: list = None      # full day names offered, in order (for the model prompt)
 
 
 def safe_first_name(case: Case, why: list) -> str:
@@ -156,6 +157,7 @@ def _tour(case, channel, send_at, lang, name, prop, facts, link, opt_out, rule) 
                 codes = ", ".join(f"{i + 1} for {s}" for i, s in enumerate(opts))
                 tail = f"Reply {codes}. {opt_out}"
             cta["options"] = opts
+            return Draft(None, core, tail, cta, bool(facts), full)
         else:
             if lang == "es":
                 core = f"Hola {name}, gracias por tu interés en {prop}. ¿Te gustaría agendar una visita?"
