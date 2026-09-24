@@ -55,14 +55,15 @@ Times are US Central (CDT). Delivery deadline: **2026-09-24, 12:00 noon** (D-021
 |---|---|
 | #1 Intake | Closed. Inputs are in `plans/`; the questions for the interviewer are in `review.md` §8 |
 | #2 Understanding | Closed. See `sample-analysis.md`, `holdout-prep.md` and the reviews; the send-time rule was corrected (D-023) |
-| #3 Prior art / competitive intel / UX prior art | Open, not started. Deferred until after the build |
+| #3 Prior art / competitive intel / UX prior art | Open, labelled `deferred` |
 | #4 Detailed spec | Closed. `design.md` / `solution.md`, and the build spec D-038 |
-| #5 Add-on agents and tests | Open. The mock hold-out cases (8–10) are part of today's build |
-| #6 Alternatives | Open. Template vs LLM mode is the first comparison |
-| #7 UX | Open, deferred |
-| #8 Demo data | Open, deferred |
+| #5 Add-on agents and tests | Open. 16 edge cases + tests done; agents and the REQ/ADD table remain |
+| #6 Alternatives | Open. Template and LLM modes are built side by side; the engineer session remains |
+| #7 UX | Open, labelled `deferred` |
+| #8 Demo data | Open, labelled `deferred` |
 | #9 Independent reviews | Closed. Both reviews done |
-| #10 External reviews | Open, deferred (D-030) |
+| #10 External reviews | Open, labelled `deferred` (D-030) |
+| #11 Core bot v1 | Closed. Tagged **v0.1.0** |
 
 ## Next
 
