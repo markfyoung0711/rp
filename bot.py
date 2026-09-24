@@ -19,7 +19,7 @@ from pathlib import Path
 
 from outreach import llm
 from outreach.llm import DEFAULT_MODEL
-from outreach import guards
+from outreach import guards, pii
 from outreach.pipeline import pending_llm_call, process
 from outreach.reader import ReadError, UnsupportedInput, decode_bytes, read_batch
 
@@ -123,12 +123,12 @@ def print_stats(results: list[dict], records: list, args, wall_s: float, input_n
         if guards.protected_hits(f"{m.get('subject') or ''} {body}"):
             violations.append(f"{r['task_id']}: protected-class term")
 
-    pii = []
+    pii_scan = []
     for r in results:
         # Everything we output except task_id (the caller's own identifier, echoed so results can be matched up).
         hits = guards.pii_hits(json.dumps({k: v for k, v in r.items() if k != "task_id"}, ensure_ascii=False))
         if hits:
-            pii.append(f"{r['task_id']}: {', '.join(hits)}")
+            pii_scan.append(f"{r['task_id']}: {', '.join(hits)}")
 
     def verdict(ok: bool) -> str:
         return "PASS" if ok else "FAIL"
@@ -153,9 +153,30 @@ def print_stats(results: list[dict], records: list, args, wall_s: float, input_n
           f"{verdict(len(violations) <= safety_max)}")
     for v in violations[:5]:
         print(f"               ! {v}")
-    print(f"  PII scan     {len(pii)} output record(s) containing an email, phone, SSN- or card-like number: {verdict(not pii)}"
+    withheld: Counter = Counter()
+    leaked: Counter = Counter()
+    protected = 0
+    recs_with_pii = 0
+    recs_with_protected = 0
+    for rec, res in zip(records, results):
+        if not isinstance(rec, dict):
+            continue
+        a = pii.audit(rec, res)
+        withheld.update(a["withheld"])
+        leaked.update(a["leaked"])
+        protected += a["protected_withheld"]
+        recs_with_pii += bool(a["withheld"] or a["leaked"])
+        recs_with_protected += bool(a["protected_withheld"])
+    total = sum(withheld.values())
+    print(f"  PII redacted {total} personal-data item(s) withheld from {recs_with_pii} record(s)"
+          + (": " + ", ".join(f"{k} {v}" for k, v in withheld.most_common()) if total else ""))
+    if protected:
+        print(f"               {protected} protected-class detail(s) withheld from {recs_with_protected} record(s) (fair housing)")
+    print(f"               leaked into output: {sum(leaked.values())}"
+          + (" (" + ", ".join(f"{k} {v}" for k, v in leaked.items()) + ")" if leaked else "")
+          + f" | pattern scan of all output: {len(pii_scan)} record(s) flagged: {verdict(not leaked and not pii_scan)}"
           "  (first names in greetings are expected)")
-    for v in pii[:5]:
+    for v in pii_scan[:5]:
         print(f"               ! {v}")
     unmeasured = [f"{k} {th[k]}" for k in ("personalization_score_min", "reply_classification_f1_min") if k in th]
     if unmeasured:

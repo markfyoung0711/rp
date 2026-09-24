@@ -123,3 +123,18 @@ def test_no_pii_in_any_output_field():
         assert not [p for p in planted if p in blob], (r["task_id"], [p for p in planted if p in blob])
         if r["next_message"]:
             assert r["next_message"]["body"].startswith(("Hi Taylor", "Hi there"))
+
+
+def test_pii_audit_counts_what_was_withheld():
+    from outreach import pii
+    recs = read_records((ROOT / "tests" / "pii_cases.jsonl").read_text())
+    outs = run((ROOT / "tests" / "pii_cases.jsonl").read_text())
+    withheld, leaked = {}, 0
+    for rec, out in zip(recs, outs):
+        a = pii.audit(rec, out)
+        leaked += sum(a["leaked"].values())
+        for k, v in a["withheld"].items():
+            withheld[k] = withheld.get(k, 0) + v
+    assert leaked == 0
+    assert withheld == {"phone": 4, "email": 3, "SSN / national ID": 2, "last name": 1, "date of birth": 1,
+                        "address": 1, "payment card / bank": 1}
