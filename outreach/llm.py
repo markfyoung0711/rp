@@ -8,6 +8,7 @@
 """
 import asyncio
 import hashlib
+import os
 import json
 import re
 from functools import lru_cache
@@ -16,6 +17,7 @@ from . import compose, config, guards
 from .normalize import Case, normalize
 
 DEFAULT_MODEL = "claude-haiku-4-5"
+CONCURRENCY = int(os.environ.get("BOT_LLM_CONCURRENCY", "64"))   # parallel model calls
 CACHE_DIR = config.ROOT / ".cache" / "llm"
 SAMPLES = config.ROOT / "plans" / "sample.jsonl"
 
@@ -122,7 +124,7 @@ async def write(case: Case, channel: str, draft: compose.Draft, model: str, why:
             if _client is None:
                 from anthropic import AsyncAnthropic
                 _client = AsyncAnthropic(timeout=8.0, max_retries=1)  # worst case ~16 s, then the template
-                _semaphore = asyncio.Semaphore(16)
+                _semaphore = asyncio.Semaphore(CONCURRENCY)
             async with _semaphore:
                 # SDK 1.x has no `temperature` kwarg; Haiku 4.5 still honours it via extra_body.
                 # Newer models reject sampling params, so determinism comes from the cache.
