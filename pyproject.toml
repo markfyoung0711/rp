@@ -1,0 +1,18 @@
+[project]
+name = "outreach-bot"
+version = "0.1.0"
+description = "Context-aware leasing outreach decision bot (RealPage take-home)"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.40",
+    "pyyaml>=6",
+]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

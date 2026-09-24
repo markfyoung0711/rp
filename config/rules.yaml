@@ -1,0 +1,51 @@
+# Decision rules for the outreach bot.
+# Change behavior here, not in code. Every table has a `default` row that is used for
+# values we have never seen (Level 1: same shape, new values).
+
+channels:
+  supported: [sms, email]         # voice is modeled but not built: skipped, with a reason
+  default_order: [sms, email]     # used when a record has no channel_preferences
+  aliases: {text: sms, texting: sms, sms_text: sms, mobile: sms, e-mail: email, mail: email, phone: voice, call: voice, calls: voice}
+  send_hour:                      # local hour; inferred from the samples (SMS 09:00, email 10:00)
+    sms: 9
+    email: 10
+    default: 10
+  legal_window: [8, 21]           # never send outside 08:00-21:00 recipient local time
+
+send_time:
+  # Day offset: taken from `dayN` in the task_id; otherwise from the stage table below.
+  stage_default_offset_days:
+    new: 0
+    open: 3
+    default: 1
+
+next_action:
+  new_stages: [new]                # these start a cadence; everyone else gets a follow-up
+  horizon_threshold_days: 45       # days from send date to move date: <= short, > long
+  follow_up_days: 3
+
+stop_keywords: [STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT, OPTOUT, "OPT OUT", REVOKE]
+
+# primary_cta -> output cta.type, purpose and the facts key holding its link.
+cta:
+  book_tour:            {type: schedule_tour,        purpose: tour,        link_key: tour_link}
+  schedule_tour:        {type: schedule_tour,        purpose: tour,        link_key: tour_link}
+  apply_now:            {type: start_application,    purpose: apply,       link_key: apply_link}
+  start_application:    {type: start_application,    purpose: apply,       link_key: apply_link}
+  sign_lease:           {type: sign_lease,           purpose: sign_lease,  link_key: portal_link}
+  collect_deposit:      {type: pay_deposit,          purpose: payment,     link_key: portal_link}
+  pay_deposit:          {type: pay_deposit,          purpose: payment,     link_key: portal_link}
+  pay_rent:             {type: pay_rent,             purpose: payment,     link_key: portal_link}
+  renew_lease:          {type: renew_lease,          purpose: renewal,     link_key: portal_link}
+  schedule_maintenance: {type: schedule_maintenance, purpose: maintenance, link_key: portal_link}
+  default:              {type: contact_us,           purpose: general,     link_key: contact_link}
+
+# Profile keys the message writer may use. Everything else in the profile is withheld
+# (it may contain protected-class details: family, religion, disability, ...).
+profile_allow_list: [first_name, amenity_interest, city_interest, unit_interest, bedrooms]
+
+# Words that must never appear in an outgoing message (fair housing).
+protected_terms: [kid, kids, child, children, baby, babies, pregnan, family size, familial,
+  religio, church, mosque, synagogue, temple, christian, muslim, jewish, disab, wheelchair,
+  handicap, race, racial, ethnic, national origin, immigra, nationality, citizenship,
+  gender, sexual orientation, married, single mom, single dad, elderly, senior, retiree]

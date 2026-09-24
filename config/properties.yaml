@@ -1,0 +1,17 @@
+# Property facts: the ONLY source for claims in a message (tour days, amenities, links).
+# If a property is missing here, the bot sends a generic message with no specific claims.
+# Keys are matched case-insensitively against input.property_name.
+
+Oak Ridge Apartments:
+  short_name: Oak Ridge
+  timezone: America/Chicago
+  tour_days: [Thu, Fri]          # days tours run; the bot offers the next ones after the send date
+  tour_link: https://oakridge.example/tour
+  apply_link: https://oakridge.example/apply
+  portal_link: https://oakridge.example/portal
+  contact_link: https://oakridge.example/contact
+  amenities:                     # key: [label in subject, label in body]
+    pool: [pool, pool]
+    fitness: [fitness rooms, 24/7 fitness center]
+    gym: [fitness rooms, 24/7 fitness center]
+  email_closer: Book a visit this week to compare floor plans.

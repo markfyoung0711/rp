@@ -39,3 +39,6 @@ eval-results/
 .DS_Store
 *.swp
 *:Zone.Identifier
+
+# Bot outputs
+out/
