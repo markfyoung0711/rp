@@ -69,7 +69,8 @@ def safe_first_name(case: Case, why: list) -> str:
     if raw and SAFE_NAME.match(raw) and not re.search(r"\b(ignore|instruction|system|prompt|assistant)\b", raw, re.I):
         return raw
     if raw:
-        why.append(f"first name {raw[:40]!r} looks unsafe or invalid; greeting uses 'there'")
+        # Never echo the rejected value: it may be an email, phone number, ID or injection text.
+        why.append(f"first name rejected as unsafe or invalid ({len(raw)} characters, not shown); greeting uses 'there'")
     return "there"
 
 

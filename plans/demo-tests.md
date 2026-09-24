@@ -36,6 +36,12 @@ Every command runs from the project folder (`~/realpage`) with no network, unles
 | 18 | `… --only MISC` | Level 3: no consent at all → **human review**, never a send |
 | 19 | `… --only malformed` | A broken line → reported as unreadable; the rest of the file still runs |
 
+## 3b. Personal data
+
+| # | Command | What it shows |
+|---|---|---|
+| 19b | `uv run bot.py -i tests/pii_cases.jsonl` | Planted last name, email, phone, SSN, DOB, address, card number and notes, including an email/phone/SSN typed into the first-name field → **none appear anywhere in the output**; greeting falls back to "there"; RUN STATS shows `PII scan … PASS` |
+
 ## 4. Messy input (`tests/garbage_inputs.txt` and others)
 
 | # | Command | What it shows |
@@ -59,6 +65,6 @@ Every command runs from the project folder (`~/realpage`) with no network, unles
 | # | Command | What it shows |
 |---|---|---|
 | 27 | `uv run pytest` | Unit tests: samples, edge cases, determinism, input formats, garbage, binary refusal |
-| 28 | `uv run python scripts/run_checks.py --full` | The code-review checklist, automated: 28 checks, including a clean-clone install and the cost guard |
+| 28 | `uv run python scripts/run_checks.py --full` | The code-review checklist, automated: 29 checks, including a clean-clone install and the cost guard |
 
 **Suggested live order (about 5 minutes):** 1 → 2 → 8 → 4 → 17 → 20 → 22 → 24, then the hold-out itself.

@@ -123,6 +123,13 @@ def print_stats(results: list[dict], records: list, args, wall_s: float, input_n
         if guards.protected_hits(f"{m.get('subject') or ''} {body}"):
             violations.append(f"{r['task_id']}: protected-class term")
 
+    pii = []
+    for r in results:
+        # Everything we output except task_id (the caller's own identifier, echoed so results can be matched up).
+        hits = guards.pii_hits(json.dumps({k: v for k, v in r.items() if k != "task_id"}, ensure_ascii=False))
+        if hits:
+            pii.append(f"{r['task_id']}: {', '.join(hits)}")
+
     def verdict(ok: bool) -> str:
         return "PASS" if ok else "FAIL"
 
@@ -145,6 +152,10 @@ def print_stats(results: list[dict], records: list, args, wall_s: float, input_n
     print(f"  Safety       {len(violations)} violation(s) in {len(sent)} sent message(s); max allowed {safety_max}: "
           f"{verdict(len(violations) <= safety_max)}")
     for v in violations[:5]:
+        print(f"               ! {v}")
+    print(f"  PII scan     {len(pii)} output record(s) containing an email, phone, SSN- or card-like number: {verdict(not pii)}"
+          "  (first names in greetings are expected)")
+    for v in pii[:5]:
         print(f"               ! {v}")
     unmeasured = [f"{k} {th[k]}" for k in ("personalization_score_min", "reply_classification_f1_min") if k in th]
     if unmeasured:

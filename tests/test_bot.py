@@ -112,3 +112,14 @@ def test_images_and_archives_are_refused_clearly():
                        (b"PK\x03\x04" + bytes(50), "ZIP"), (b"\xff\xd8\xff\xe0" + bytes(50), "JPEG")):
         with pytest.raises(UnsupportedInput, match=word):
             decode_bytes(blob)
+
+
+def test_no_pii_in_any_output_field():
+    """Planted personal data (profile, top-level fields, and the first-name field) must never appear anywhere in the output."""
+    text = (ROOT / "tests" / "pii_cases.jsonl").read_text()
+    planted = ["Okafor", "taylor.okafor@example.com", "555-0187", "555 0187", "123-45-6789", "1990-04-12", "1200 Elm", "4111 1111"]
+    for r in run(text):
+        blob = json.dumps(r, ensure_ascii=False)
+        assert not [p for p in planted if p in blob], (r["task_id"], [p for p in planted if p in blob])
+        if r["next_message"]:
+            assert r["next_message"]["body"].startswith(("Hi Taylor", "Hi there"))

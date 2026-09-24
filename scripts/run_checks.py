@@ -124,6 +124,12 @@ def main(full: bool) -> int:
             bad.append(f"{o['task_id']}: send hour {hour}")
     check("P0", "opt-out, PII, steering, send window on all messages", not bad, "; ".join(bad))
 
+    # C. PII: planted personal data must not appear anywhere in the output (only the first name, in the greeting)
+    pii_out = sh("uv", "run", "bot.py", "-i", str(ROOT / "tests" / "pii_cases.jsonl"), "--quiet")
+    planted = ["Okafor", "taylor.okafor@example.com", "555-0187", "555 0187", "123-45-6789", "1990-04-12", "1200 Elm", "4111 1111"]
+    leaked = [x for x in planted if x in pii_out.stdout]
+    check("P0", "PII: planted email/phone/SSN/DOB/address/card never in output", not leaked, ", ".join(leaked))
+
     # D. Static
     check("P0", "pytest", sh("uv", "run", "pytest", "-q").returncode == 0)
     ruff = sh("uv", "run", "ruff", "check", "outreach", "bot.py", "tests", "--select", "E9,F")

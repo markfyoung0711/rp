@@ -6,6 +6,23 @@ from . import config
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 PHONE = re.compile(r"(?<!\w)(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}(?!\w)")
 URL = re.compile(r"https?://\S+")
+SSN = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
+CARD = re.compile(r"\b(?:\d[ -]?){13,16}\b")
+
+
+def pii_hits(text: str) -> list[str]:
+    """Personal data patterns anywhere in an output record (URLs are removed first; links are not PII)."""
+    t = URL.sub("", text)
+    hits = []
+    if EMAIL.search(t):
+        hits.append("email address")
+    if PHONE.search(t):
+        hits.append("phone number")
+    if SSN.search(t):
+        hits.append("SSN-like number")
+    if CARD.search(t):
+        hits.append("card-like number")
+    return hits
 
 
 def protected_hits(text: str) -> list[str]:
