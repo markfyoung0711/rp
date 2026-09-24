@@ -16,16 +16,30 @@ import yaml
 from outreach import config
 from outreach.learn import learn
 from outreach.pipeline import process
-from outreach.reader import decode_bytes, read_batch
+from outreach.reader import UnsupportedInput, decode_bytes, read_batch
 
 CONTROLLABLE = ("channel", "send_at", "cta")
 
 
 def load(paths: list[str]) -> list[dict]:
+    """Same input protections as bot.py: missing files, images/binary, encodings, pasted garbage."""
     recs: list[dict] = []
     for p in paths:
-        text, _ = decode_bytes(Path(p).read_bytes())
-        recs += [r for r in read_batch(text).records if isinstance(r, dict)]
+        path = Path(p)
+        if not path.is_file():
+            sys.exit(f"Input file not found: {path}")
+        try:
+            text, notes = decode_bytes(path.read_bytes())
+        except UnsupportedInput as e:
+            print(f"Cannot read {path}: {e}. Nothing was learned.", file=sys.stderr)
+            sys.exit(2)
+        batch = read_batch(text)
+        for note in notes + batch.notes:
+            print(f"[input] {path.name}: {note}", file=sys.stderr)
+        unreadable = [r for r in batch.records if not isinstance(r, dict)]
+        if unreadable:
+            print(f"[input] {path.name}: {len(unreadable)} unreadable record(s) ignored", file=sys.stderr)
+        recs += [r for r in batch.records if isinstance(r, dict)]
     return recs
 
 
@@ -70,7 +84,7 @@ def main() -> None:
     config.use_rules("neutral", {})
     learned, evidence = learn(recs)
     print("═" * 78)
-    print(f"LEARNED FROM {len(recs)} LABELLED EXAMPLE(S)  ({', '.join(args.files)})")
+    print(f"{evidence[0].upper()}  ({', '.join(args.files)})")
     for line in evidence[1:]:
         print("  " + line)
     changes = [(k, current.get(k), v) for k, v in flat({k: v for k, v in learned.items() if k != "cta"}).items()

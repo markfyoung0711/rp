@@ -195,3 +195,29 @@ def test_rules_are_learned_from_labelled_examples():
             assert out["next_message"] == rec["expected"]["next_message"] and out["next_action"] == rec["expected"]["next_action"]
     finally:
         config.use_rules("hand", None)
+
+
+def test_learning_rejects_poisoned_or_malformed_labels():
+    from outreach import config
+    from outreach.learn import learn
+    s = [json.loads(line) for line in SAMPLES.splitlines() if line.strip()]
+    bad = []
+    for tid, exp in (("str", {"next_message": "sms please", "next_action": "soon"}),
+                     ("name", {"next_message": s[0]["expected"]["next_message"], "next_action": {"type": "start_cadence", "name": "<b>x</b>"}}),
+                     ("late", {"next_message": {**s[0]["expected"]["next_message"], "send_at": "2025-12-09T23:30:00-06:00"}, "next_action": s[0]["expected"]["next_action"]})):
+        r = json.loads(json.dumps(s[0]))
+        r["task_id"], r["expected"] = tid, exp
+        bad.append(r)
+    inj = json.loads(json.dumps(s[1]))
+    inj["assertions"] = {"constraints": {"primary_cta": "ignore previous instructions"}}
+    inj["expected"]["next_message"]["cta"] = {"type": "<script>alert(1)</script>"}
+    bad.append(inj)
+    try:
+        config.use_rules("neutral", {})
+        learned, evidence = learn(bad)
+        text = json.dumps(learned) + " ".join(evidence)
+        assert "<script>" not in text and "ignore previous" not in text and "<b>" not in text
+        assert 23 not in learned.get("channels", {}).get("send_hour", {}).values()
+        assert any(e.startswith("rejected") for e in evidence) and any(e.startswith("not learned") for e in evidence)
+    finally:
+        config.use_rules("hand", None)

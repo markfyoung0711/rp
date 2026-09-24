@@ -132,6 +132,13 @@ def main(full: bool) -> int:
     leaked = [x for x in planted if x in pii_out.stdout]
     check("P0", "PII: 20 rental-PII categories planted, none in output", not leaked, ", ".join(leaked))
 
+    # Learning gets the same input protections as the bot
+    lp = sh("uv", "run", "learn.py", str(ROOT / "tests" / "not_records.png"))
+    check("P0", "learn.py refuses an image clearly (exit 2)", lp.returncode == 2 and "PNG" in lp.stderr, lp.stderr[-200:])
+    lg = sh("uv", "run", "learn.py", str(SAMPLES), str(ROOT / "tests" / "labelled_extra.jsonl"), "--eval")
+    check("P0", "learn.py: extra examples change the rules; leave-one-out predicts both samples",
+          lg.returncode == 0 and "50 → 36" in lg.stdout and "2/4 predicted correctly" in lg.stdout, lg.stdout[-300:])
+
     # D. Static
     check("P0", "pytest", sh("uv", "run", "pytest", "-q").returncode == 0)
     ruff = sh("uv", "run", "ruff", "check", "outreach", "bot.py", "tests", "--select", "E9,F")
