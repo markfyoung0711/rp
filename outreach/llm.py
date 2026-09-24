@@ -5,6 +5,7 @@
 - Structured output via a forced, strict tool call; responses cached on disk, so a
   re-run of the same input gives identical output.
 - Any failure or guard problem falls back to the template, with the reason recorded.
+- No-cost by default: without BOT_ALLOW_API_COST=1 only cached answers are used; nothing is billed.
 """
 import asyncio
 import hashlib
@@ -119,6 +120,11 @@ async def write(case: Case, channel: str, draft: compose.Draft, model: str, why:
 
     if cache_file.exists():
         result = json.loads(cache_file.read_text())
+    elif os.environ.get("BOT_ALLOW_API_COST") != "1":
+        # No-cost mode (default): never make a paid API call; cached answers are still used.
+        why.append("wording: no cached model answer and paid API calls are off "
+                   "(set BOT_ALLOW_API_COST=1 to allow); used the template")
+        return None
     else:
         try:
             if _client is None:
