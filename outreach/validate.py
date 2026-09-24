@@ -123,6 +123,10 @@ def _brand_problems(b: dict, where: str) -> list[str]:
     p = []
     if "max_exclamations" in b and not _int(b["max_exclamations"], 0, 5):
         p.append(f"{where}.max_exclamations: must be 0-5")
+    if "max_voice_words" in b and not _int(b["max_voice_words"], 10, 250):
+        p.append(f"{where}.max_voice_words: must be 10-250")
+    if "voice_intro" in b and not (isinstance(b["voice_intro"], str) and 0 < len(b["voice_intro"]) <= 60):
+        p.append(f"{where}.voice_intro: must be a short phrase")
     if "max_sms_chars" in b and not _int(b["max_sms_chars"], 40, 1600):
         p.append(f"{where}.max_sms_chars: must be 40-1600")
     for k in ("emoji_allowed", "shouting_allowed", "use_display_name"):

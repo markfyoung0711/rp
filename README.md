@@ -15,7 +15,7 @@ uv run bot.py --paste -o out/holdout.jsonl                 # paste records, then
 uv run learn.py plans/sample.jsonl --eval                  # learn the rules from labelled examples; leave-one-out test
 uv run python scripts/decision_table.py                     # all 120 consent × preference cases vs the policy
 uv run python scripts/report.py <file> [--only ID]         # paste-ready problem report (out/report.txt)
-uv run python scripts/validate_rules.py                     # check the rule configuration (run after any rule change)
+uv run python scripts/validate_rules.py --brand             # check rules, properties and branding; preview each channel
 uv run pytest                                              # tests
 uv run python scripts/run_checks.py --full                 # the code-review checklist, automated (34 checks)
 uv run python scripts/gen_records.py 100 > /tmp/p.jsonl    # generate test records (performance: plans/performance.md)
@@ -38,7 +38,7 @@ Input can be JSONL, a JSON array, a wrapper object, or pretty-printed objects, i
 |---|---|---|
 | Read | code | A bad record becomes a no-send with a reason; the rest still run |
 | STOP / opt-out | code | Any opt-out flag or STOP keyword → no send, and no model call |
-| Channel | code | The first preferred channel with consent; voice is skipped (not built) |
+| Channel | code | The first preferred channel with consent: SMS, email or voice (an automated call script) |
 | Send time | code | Local `last_interaction` + the `dayN` in the task_id (else a stage default), at 09:00 for SMS or 10:00 for email; moved to the next day if that time isn't after the last interaction |
 | Next action | code | A new lead starts a cadence (`short` if ≤ 45 days to move-in, else `long`); otherwise follow up in 3 days |
 | Wording | template (default) or Claude (`--llm`) | Property claims come only from `config/properties.yaml` |
@@ -77,7 +77,7 @@ These were inferred from two samples and stated rather than hidden. The details 
 - **No-send shape:** as above. The assignment doesn't define one.
 - **Brand style** isn't defined by the assignment. It's implemented as a per-property brand profile (`config/properties.yaml`, defaults in `config/rules.yaml`) plus a check on every message.
 - **Consent:** only an explicit opt-in counts; missing or unclear consent means no send.
-- **Voice:** modeled but not built; skipped, with a reason.
+- **Voice:** the samples never show a voice answer, so its shape is inferred from SMS: `channel: "voice"`, no subject, a short call script with keypad options (`cta.options`) and a spoken opt-out ("press 9 or say stop"), sent at 10:00 local. The caller identifies itself with the brand's `voice_intro`. Automated calls have stricter consent rules (TCPA), so voice consent is required, as for every channel.
 - **AI disclosure:** not added to message bodies, because the expected outputs don't include it; it would be a policy setting.
 - **Personal data in output:** only the first name (in the greeting) and your own `task_id`. Nothing else from the profile ever appears, in any field; see `tests/pii_cases.jsonl`.
 - **Output determinism:** the same input gives a byte-identical output file. `--llm` answers are cached.

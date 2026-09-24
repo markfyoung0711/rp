@@ -117,7 +117,7 @@ def print_stats(results: list[dict], records: list, args, wall_s: float, input_n
     for r in sent:
         m = r["next_message"]
         body = m["body"]
-        if "STOP" not in body:
+        if "stop" not in body.lower():
             violations.append(f"{r['task_id']}: no opt-out")
         scrubbed = guards.URL.sub("", body)
         if guards.EMAIL.search(scrubbed) or guards.PHONE.search(scrubbed):

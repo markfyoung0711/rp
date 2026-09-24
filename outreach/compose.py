@@ -20,8 +20,10 @@ MONTHS = {"en": ["January", "February", "March", "April", "May", "June", "July",
                  "October", "November", "December"],
           "es": ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre",
                  "octubre", "noviembre", "diciembre"]}
-OPT_OUT = {"en": {"sms": "Reply STOP to opt out.", "email": "To opt out of emails, click here or reply STOP."},
-           "es": {"sms": "Responde STOP para cancelar.", "email": "Para dejar de recibir correos, haz clic aquí o responde STOP."}}
+OPT_OUT = {"en": {"sms": "Reply STOP to opt out.", "email": "To opt out of emails, click here or reply STOP.",
+                  "voice": "To stop these calls, press 9 or say stop."},
+           "es": {"sms": "Responde STOP para cancelar.", "email": "Para dejar de recibir correos, haz clic aquí o responde STOP.",
+                  "voice": "Para no recibir más llamadas, marque 9 o diga stop."}}
 SUPPORTED_LANGS = {"en", "es"}
 
 # Generic (non-tour) purpose lines: {name}, {prop}. No prices, no invented facts.
@@ -125,6 +127,12 @@ def draft(case: Case, channel: str, send_at: datetime, why: list) -> Draft:
 
     line = PURPOSE_LINES[lang][purpose].format(prop=prop)
     cta = {"type": rule["type"]}
+    if channel == "voice":
+        # A call can't carry a link: offer to connect the caller to the team instead.
+        core = f"{'Hi' if lang == 'en' else 'Hola'} {name}, {voice_intro(facts, prop, lang)}. " + line[0].upper() + line[1:]
+        tail = ("Press 1 to be connected to our team. " if lang == "en" else "Marque 1 para hablar con nuestro equipo. ") + opt_out
+        cta["options"] = ["1"]
+        return Draft(None, core, tail, cta, bool(facts))
     if link:
         cta["link"] = link
     if channel == "sms":
@@ -138,8 +146,42 @@ def draft(case: Case, channel: str, send_at: datetime, why: list) -> Draft:
     return Draft(subject, core, tail, cta, bool(facts))
 
 
+def voice_intro(facts: dict | None, prop: str, lang: str) -> str:
+    """How an automated call identifies itself: the brand's voice_intro, else "this is <property>"."""
+    intro = ((facts or {}).get("brand") or {}).get("voice_intro")
+    if intro and lang == "en":
+        return intro
+    return f"le llamamos de {prop}" if lang == "es" else f"this is {prop}"
+
+
 def _tour(case, channel, send_at, lang, name, prop, facts, link, opt_out, rule) -> Draft:
     cta = {"type": rule["type"]}
+    if channel == "voice":
+        # Automated call script: the same offer as SMS, with keypad choices instead of reply codes.
+        slots = next_tour_days(facts, send_at) if facts else []
+        if slots:
+            full = [DAY_FULL[lang][d.weekday()] for _, d in slots]
+            this_week = all(d.isocalendar()[1] == send_at.date().isocalendar()[1] for _, d in slots)
+            if lang == "es":
+                when = "esta semana" if this_week else "en los próximos días"
+                core = f"Hola {name}, {voice_intro(facts, prop, lang)}. Hay visitas disponibles {when}. ¿Le gustaría reservar el {' o el '.join(full)}?"
+                keys = ", ".join(f"marque {i + 1} para el {f}" for i, f in enumerate(full))
+                tail = f"Por favor, {keys}. {opt_out}"
+            else:
+                when = "this week" if this_week else "in the coming days"
+                core = f"Hi {name}, {voice_intro(facts, prop, lang)}. Tours are available {when}. Would you like to book a time on {' or '.join(full)}?"
+                keys = ", ".join(f"press {i + 1} for {f}" for i, f in enumerate(full))
+                tail = f"Please {keys}. {opt_out}"
+            cta["options"] = [s for s, _ in slots]
+            return Draft(None, core, tail, cta, bool(facts), full)
+        if lang == "es":
+            core = f"Hola {name}, {voice_intro(facts, prop, lang)}. ¿Le gustaría agendar una visita?"
+            tail = f"Marque 1 y le devolveremos la llamada con horarios. {opt_out}"
+        else:
+            core = f"Hi {name}, {voice_intro(facts, prop, lang)}. Would you like to schedule a tour?"
+            tail = f"Press 1 and we'll call you back with available times. {opt_out}"
+        cta["options"] = ["1"]
+        return Draft(None, core, tail, cta, bool(facts))
     if channel == "sms":
         slots = next_tour_days(facts, send_at) if facts else []
         if slots:
@@ -205,4 +247,4 @@ def _tour(case, channel, send_at, lang, name, prop, facts, link, opt_out, rule) 
 
 
 def assemble(channel: str, core: str, tail: str) -> str:
-    return f"{core.rstrip()} {tail}" if channel == "sms" else f"{core.rstrip()}\n{tail}"
+    return f"{core.rstrip()} {tail}" if channel in ("sms", "voice") else f"{core.rstrip()}\n{tail}"

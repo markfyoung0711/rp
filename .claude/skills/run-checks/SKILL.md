@@ -1,12 +1,26 @@
 ---
 name: run-checks
-description: Run the code-review checklist against the outreach bot. It runs the automated checks script, then the manual checklist items, and reports findings (at most ~10) with severity, a reproduction, expected vs actual, and whether each is safe to auto-fix. Triggered by "run checks", "run the checks", "run the checklist", "check the bot", "pre-demo check", "are we demo ready", "regression check".
+description: Run the code-review checklist against the outreach bot. It validates the rules and branding, runs the automated checks script, then the manual checklist items, and reports findings (at most ~10) with severity, a reproduction, expected vs actual, and whether each is safe to auto-fix. Triggered by "run checks", "run the checks", "run the checklist", "check the bot", "pre-demo check", "are we demo ready", "regression check".
 allowed-tools: Bash, Read, Edit, Write
 ---
 
 # run-checks: verify the bot against the code-review checklist
 
 The checklist is [`plans/code-review-checklist.md`](../../../plans/code-review-checklist.md). Results from earlier runs are in `plans/code-review-results.md`. The graded fields to protect are channel, send_at, subject, CTA, next_action and body similarity.
+
+## 0. Validate the configuration: rules and branding (always, first)
+
+```bash
+uv run python scripts/validate_rules.py --brand
+```
+
+- **What it checks:**
+  - **Rules:** `config/rules.yaml` merged with `config/learned.yaml`. Types and ranges; send hours inside the legal 8:00-21:00 window (it may be narrowed, never widened); STOP present; no personal or protected fields in the AI prompt allow-list; CTA names and purposes.
+  - **Properties and branding:** `config/properties.yaml`. Time zones, tour days, `https` links, and each property's `brand` block, which overrides `brand_default` in `rules.yaml`.
+  - **Brand preview:** renders a tour message for every property on SMS, email and voice, and brand-checks each one. It covers display name, voice intro, banned phrases, emoji, shouting and length.
+- **Result:** exit 0 and `VALID`, or exit 1 with every problem listed.
+- **If anything is invalid, stop and fix the configuration first.** The bot and `learn.py` also refuse to run on invalid rules (exit 6).
+- Run it after **any** rule or brand change, whether a person or an AI made it.
 
 ## 1. Automated checks (always)
 
@@ -20,6 +34,7 @@ It prints PASS/FAIL per check and exits 1 on any P0 failure. It covers:
 - **B:** JSONL / JSON array / pretty-printed input, no trailing newline, malformed-record isolation, edge cases exiting 0
 - **C:** opt-out, PII, steering terms and the send window on every message
 - **D:** pytest, ruff errors (`E9,F`), API-key scan, time-zone data, README present
+- **Config:** the validator above, including the brand preview; the decision table (all 120 consent × preference combinations match the policy)
 - **`--full`:** LLM offline fallback, clean-clone install
 
 Use `--full` before any demo or after a dependency change.

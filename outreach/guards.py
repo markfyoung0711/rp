@@ -65,8 +65,8 @@ def check_message(channel: str, subject: str | None, body: str, opt_out_line: st
         problems.append("money amount in message")
     if LONG_DIGITS.search(f"{subject or ''} {scrubbed}") or SSN.search(scrubbed):
         problems.append("account- or ID-like number in message")
-    if channel == "sms" and subject:
-        problems.append("SMS must not have a subject")
+    if channel in ("sms", "voice") and subject:
+        problems.append(f"{channel.upper()} must not have a subject")
     if channel == "email" and not subject:
         problems.append("email needs a subject")
     return problems
@@ -97,12 +97,18 @@ def check_brand(channel: str, subject: str | None, body: str, facts: dict | None
         problems.append("emoji not allowed by the brand")
     if text.count("!") > int(brand.get("max_exclamations", 2)):
         problems.append("too many exclamation marks")
-    if channel == "sms" and len(body) > int(brand.get("max_sms_chars", 320)):
+    if channel in ("sms", "voice") and len(body) > int(brand.get("max_sms_chars", 320)):
         problems.append(f"SMS longer than {brand.get('max_sms_chars', 320)} characters")
     if not brand.get("shouting_allowed", False):
         shouting = [w for w in CAPS_WORD.findall(text) if w not in CAPS_OK]
         if shouting:
             problems.append("ALL-CAPS words: " + ", ".join(sorted(set(shouting))[:3]))
+    if channel == "voice":
+        words = len(body.split())
+        if words > int(brand.get("max_voice_words", 75)):
+            problems.append(f"call script too long ({words} words; brand limit {brand.get('max_voice_words', 75)})")
+        if re.search(r"https?://|[→&@#*/<>]", body):
+            problems.append("call script contains symbols or links that don't read aloud")
     display = brand.get("display_name") or (facts or {}).get("short_name")
     if brand.get("use_display_name", True) and display and full_name and full_name != display and full_name in text:
         problems.append(f"uses the full property name instead of the brand name {display!r}")

@@ -30,7 +30,7 @@ The bot reads the first two parts and produces its own version of the third. The
 |---|---|---|---|
 | `consent.sms_opt_in` | `true` | Did they agree to receive **texts**? | Never texts without it (the law requires consent) |
 | `consent.email_opt_in` | `true` | Did they agree to receive **emails**? | Never emails without it |
-| `consent.voice_opt_in` | `false` | Did they agree to **phone calls**? | Voice isn't built, so it's skipped with a reason |
+| `consent.voice_opt_in` | `false` | Did they agree to **phone calls**? | Never calls without it. With consent and voice preferred, the bot writes an automated **call script** with keypad options ("press 1 for Thursday") and a spoken opt-out ("press 9 or say stop") |
 | `channel_preferences` | `["sms", "email"]` | The order they'd like to hear from you: here, text first, then email | Takes the **first channel in this list that has consent** |
 
 ## 3. The situation (`input`)

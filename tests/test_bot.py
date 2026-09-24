@@ -43,15 +43,16 @@ def test_edge_cases_never_crash_and_are_safe():
     for r in results:
         msg = r["next_message"]
         if msg:
-            assert "STOP" in msg["body"], r["task_id"]
-            assert msg["channel"] in ("sms", "email")
-            assert (msg["subject"] is None) == (msg["channel"] == "sms")
+            assert "stop" in msg["body"].lower(), r["task_id"]
+            assert msg["channel"] in ("sms", "email", "voice")
+            assert (msg["subject"] is None) == (msg["channel"] in ("sms", "voice"))
 
 
 def test_specific_edges():
     r = by_id(run(EDGES))
     assert r["edge_no_consent_day0"]["next_message"] is None
-    assert r["edge_voice_only_day1"]["next_message"] is None
+    voice = r["edge_voice_only_day1"]["next_message"]
+    assert voice["channel"] == "voice" and voice["subject"] is None and "press 9" in voice["body"]
     assert r["edge_inbound_stop_day1"]["next_message"] is None
     assert r["edge_sms_preferred_not_consented_day0"]["next_message"]["channel"] == "email"
     kids = r["edge_fair_housing_kids_day0"]["next_message"]["body"].lower()
@@ -319,3 +320,14 @@ def test_answer_only_matches_the_expected_shape(tmp_path):
     assert [set(r) for r in rows] == [{"task_id", "next_message", "next_action"}] * 2
     for r, s in zip(rows, samples):
         assert {k: r[k] for k in ("next_message", "next_action")} == s["expected"]
+
+
+def test_voice_call_script_is_branded_and_spoken_safe():
+    from outreach import config, guards
+    facts = config.property_facts("Oak Ridge Apartments")
+    long_script = "Hi Taylor, this is Oak Ridge Leasing. " + "Tours are open. " * 40 + "To stop these calls, press 9 or say stop."
+    assert any("too long" in p for p in guards.check_brand("voice", None, long_script, facts, None))
+    assert any("read aloud" in p for p in guards.check_brand("voice", None, "Book now → https://x.example", facts, None))
+    out = run((ROOT / "tests" / "edge_cases.jsonl").read_text())
+    v = next(r for r in out if r["task_id"] == "edge_voice_only_day1")["next_message"]
+    assert v["body"].startswith("Hi Jordan, this is Oak Ridge Leasing.")

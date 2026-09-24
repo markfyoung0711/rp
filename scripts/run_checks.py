@@ -75,8 +75,9 @@ def main(full: bool) -> int:
         r.update(kw)
         return r
     cases = {
-        "voice only -> no send": (variant(channel_preferences=["voice"], consent={"voice_opt_in": True}), None),
-        "voice first, sms second -> sms": (variant(channel_preferences=["voice", "sms"], consent={"voice_opt_in": True, "sms_opt_in": True}), "sms"),
+        "voice only -> voice": (variant(channel_preferences=["voice"], consent={"voice_opt_in": True}), "voice"),
+        "voice first, sms second -> voice": (variant(channel_preferences=["voice", "sms"], consent={"voice_opt_in": True, "sms_opt_in": True}), "voice"),
+        "voice preferred, no voice consent -> sms": (variant(channel_preferences=["voice", "sms"], consent={"voice_opt_in": False, "sms_opt_in": True}), "sms"),
         "preferred not consented -> fallback": (variant(consent={"sms_opt_in": False, "email_opt_in": True}), "email"),
         "no consent -> no send": (variant(consent={"sms_opt_in": False, "email_opt_in": False}), None),
         "consent null -> no send": (variant(consent=None), None),
@@ -113,7 +114,7 @@ def main(full: bool) -> int:
         m = o["next_message"]
         if not m:
             continue
-        if "STOP" not in m["body"]:
+        if "stop" not in m["body"].lower():
             bad.append(f"{o['task_id']}: no opt-out")
         if phone.search(m["body"]) or email.search(m["body"]):
             bad.append(f"{o['task_id']}: contact details")
@@ -149,8 +150,8 @@ def main(full: bool) -> int:
     check("P0", "decision table: all 120 consent × preference combinations match the policy",
           dt.returncode == 0 and "120 match the policy" in dt.stdout, dt.stdout[-300:])
 
-    vr = sh("uv", "run", "python", "scripts/validate_rules.py")
-    check("P0", "rules validator: the rule configuration is valid", vr.returncode == 0 and "VALID" in vr.stdout, vr.stdout[-300:])
+    vr = sh("uv", "run", "python", "scripts/validate_rules.py", "--brand")
+    check("P0", "config validator: rules, properties and brand are valid (with brand preview)", vr.returncode == 0 and vr.stdout.rstrip().endswith("VALID") and "INVALID" not in vr.stdout, vr.stdout[-300:])
 
     # D. Static
     check("P0", "pytest", sh("uv", "run", "pytest", "-q").returncode == 0)

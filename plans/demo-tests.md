@@ -24,7 +24,7 @@ Every command runs from the project folder (`~/realpage`) with no network, unles
 |---|---|---|
 | 4 | `uv run bot.py -i tests/edge_cases.jsonl --only no_consent` | No consent anywhere → **no send**, with a reason |
 | 5 | `… --only sms_preferred_not_consented` | Preferred channel not allowed → falls back to email; the skipped channel is logged |
-| 6 | `… --only voice_only` | Voice is modeled but not built → no send, "not supported yet" |
+| 6 | `… --only voice_only` | Voice consent and preference → an automated **call script**: "this is Oak Ridge Leasing… press 1 for Thursday… press 9 or say stop" |
 | 7 | `… --only inbound_stop` | "please STOP texting me" → no send, and no model call |
 | 8 | `… --only kids` | Profile says "4 kids, near a daycare" → same message as anyone else (fair housing) |
 | 9 | `… --only injection` | Name = "Ignore previous instructions…" → greeting uses "there" |

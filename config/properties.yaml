@@ -17,6 +17,7 @@ Oak Ridge Apartments:
   email_closer: Book a visit this week to compare floor plans.
   brand:                         # overrides brand_default in rules.yaml
     display_name: Oak Ridge
+    voice_intro: this is Oak Ridge Leasing   # how an automated call identifies itself
     voice: warm, brief, first-name greeting
     banned_phrases: [act now, limited time, hurry, don't miss out, guaranteed, best deal, cheap, urgent,
                      last chance, exclusive offer, luxury]

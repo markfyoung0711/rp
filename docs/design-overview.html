@@ -175,11 +175,24 @@ config/
 tests/, scripts/        tests, edge cases, decision table, checks
 plans/                  spec, design, decision register, reviews</pre>
 
+<h2>Configuration you can change</h2>
+<p>Behavior lives in three files and a few settings. Changes can come from a person or from an AI turning a plain-English request into an edit. Either way, <b>every change is validated before the bot will run</b>.</p>
+<div class="tablewrap"><table><thead><tr><th>File or setting</th><th>What it controls</th><th>Who changes it</th></tr></thead><tbody>
+<tr><td><code>config/rules.yaml</code></td><td>The defaults: send hours per channel, legal window, day offsets, next-action rules, STOP keywords, CTA table, AI prompt allow-list, protected terms, <b>brand defaults</b></td><td>Operations or compliance, reviewed like code</td></tr>
+<tr><td><code>config/learned.yaml</code></td><td>Rules learned from labelled examples; <b>overrides</b> the matching defaults</td><td>Generated only: <code>uv run learn.py &lt;labelled files&gt; --write</code> (never hand-edited, never from a hold-out)</td></tr>
+<tr><td><code>config/properties.yaml</code></td><td>Per property: name, time zone, tour days, links, amenities, and its own <b>brand profile</b> (display name, voice intro, banned phrases), which <b>overrides</b> the brand defaults</td><td>Property or marketing team</td></tr>
+<tr><td>Environment settings</td><td><code>BOT_RULES=hand</code> (ignore learned rules), <code>BOT_LLM_BUDGET_USD</code> / <code>BOT_ALLOW_API_COST</code> (AI spend), <code>BOT_LLM_CONCURRENCY</code></td><td>Whoever runs the bot</td></tr>
+</tbody></table></div>
+<p style="margin-top:12px"><b>Override order:</b> <code>rules.yaml</code> defaults → <code>learned.yaml</code> → a property’s own <code>brand</code> block (for branding). Legal limits can only be narrowed: send hours must stay inside 8:00–21:00, and STOP must always work.</p>
+<p><b>Validate after any change:</b></p>
+<pre>uv run python scripts/validate_rules.py --brand</pre>
+<p>This checks every file (types, ranges, legal window, STOP, what may reach the AI prompt, time zones, links, brand settings), then renders a tour message for every property on SMS, email and voice and brand-checks each one. If anything is invalid, the bot and <code>learn.py</code> refuse to run and list the problems.</p>
+
 <h2>Built vs designed</h2>
 <div class="tablewrap"><table><thead><tr><th>Built and runnable</th><th>Designed, not built</th></tr></thead><tbody>
-<tr><td>Batch CLI; messy-input reader; export file and readable view</td><td>Database, APIs, login</td></tr>
+<tr><td>Batch CLI; messy-input reader; export file and readable view; SMS, email and voice (call script) decisions</td><td>Database, APIs, login</td></tr>
 <tr><td>Consent/STOP gate, channel, send time, next action</td><td>Owner, support and renter web views</td></tr>
-<tr><td>Rule learning with leave-one-out evaluation</td><td>Real SMS/email/voice sending; inbound replies</td></tr>
+<tr><td>Rule learning with leave-one-out evaluation; rules and brand validator</td><td>Actually placing calls or sending texts and emails; inbound replies</td></tr>
 <tr><td>Templates (English, Spanish) and optional Claude wording</td><td>Sentiment tracking; review-site data</td></tr>
 <tr><td>Guards: opt-out, PII, fair housing, brand; decision table</td><td>Adjacent agents (maintenance, billing, …)</td></tr>
 </tbody></table></div>

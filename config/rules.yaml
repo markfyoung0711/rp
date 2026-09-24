@@ -3,12 +3,13 @@
 # values we have never seen (Level 1: same shape, new values).
 
 channels:
-  supported: [sms, email]         # voice is modeled but not built: skipped, with a reason
+  supported: [sms, email, voice]  # voice = an automated call script with keypad options (shape inferred; the samples show no voice answer)
   default_order: [sms, email]     # used when a record has no channel_preferences
   aliases: {text: sms, texting: sms, sms_text: sms, mobile: sms, e-mail: email, mail: email, phone: voice, call: voice, calls: voice}
-  send_hour:                      # local hour; inferred from the samples (SMS 09:00, email 10:00)
+  send_hour:                      # local hour; SMS 09:00 and email 10:00 inferred from the samples; voice assumed
     sms: 9
     email: 10
+    voice: 10
     default: 10
   legal_window: [8, 21]           # never send outside 08:00-21:00 recipient local time
 
@@ -66,6 +67,7 @@ brand_default:
   max_sms_chars: 320           # two SMS segments
   shouting_allowed: false      # no ALL-CAPS words (STOP, SMS, CTA codes and short acronyms excepted)
   use_display_name: true       # say "Oak Ridge", not "Oak Ridge Apartments", when a display name exists
+  max_voice_words: 75          # a call script of about 30 seconds
   banned_phrases: [act now, limited time, hurry, don't miss out, guaranteed, best deal, cheap, urgent,
                    last chance, exclusive offer, click here now, luxury living at its finest]
 

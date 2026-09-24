@@ -52,12 +52,12 @@ Requires [uv](https://docs.astral.sh/uv/) and Python 3.12+.
 uv sync                                                    # install (once)
 uv run bot.py -i plans/sample.jsonl --compare              # the two samples, compared field by field
 uv run bot.py -i tests/edge_cases.jsonl                    # 16 unseen-style cases (Levels 1-3)
-uv run bot.py -i holdout.jsonl -o out/holdout.jsonl        # a hold-out file -> an output file
+uv run bot.py -i holdout.jsonl -o out/holdout.jsonl --answer-only   # hold-out -> answers in the expected shape
 uv run bot.py --paste -o out/holdout.jsonl                 # paste records, then Ctrl+D
 uv run learn.py plans/sample.jsonl --eval                  # learn the rules from labelled examples; leave-one-out test
 uv run python scripts/decision_table.py                     # all 120 consent × preference cases vs the policy
 uv run python scripts/report.py <file> [--only ID]         # paste-ready problem report (out/report.txt)
-uv run python scripts/validate_rules.py                     # check the rule configuration (run after any rule change)
+uv run python scripts/validate_rules.py --brand             # check rules, properties and branding; preview each channel
 uv run pytest                                              # tests
 uv run python scripts/run_checks.py --full                 # the code-review checklist, automated (34 checks)
 uv run python scripts/gen_records.py 100 > /tmp/p.jsonl    # generate test records (performance: plans/performance.md)
@@ -80,7 +80,7 @@ Input can be JSONL, a JSON array, a wrapper object, or pretty-printed objects, i
 |---|---|---|
 | Read | code | A bad record becomes a no-send with a reason; the rest still run |
 | STOP / opt-out | code | Any opt-out flag or STOP keyword → no send, and no model call |
-| Channel | code | The first preferred channel with consent; voice is skipped (not built) |
+| Channel | code | The first preferred channel with consent: SMS, email or voice (an automated call script) |
 | Send time | code | Local `last_interaction` + the `dayN` in the task_id (else a stage default), at 09:00 for SMS or 10:00 for email; moved to the next day if that time isn't after the last interaction |
 | Next action | code | A new lead starts a cadence (`short` if ≤ 45 days to move-in, else `long`); otherwise follow up in 3 days |
 | Wording | template (default) or Claude (`--llm`) | Property claims come only from `config/properties.yaml` |
@@ -119,7 +119,7 @@ These were inferred from two samples and stated rather than hidden. The details 
 - **No-send shape:** as above. The assignment doesn't define one.
 - **Brand style** isn't defined by the assignment. It's implemented as a per-property brand profile (`config/properties.yaml`, defaults in `config/rules.yaml`) plus a check on every message.
 - **Consent:** only an explicit opt-in counts; missing or unclear consent means no send.
-- **Voice:** modeled but not built; skipped, with a reason.
+- **Voice:** the samples never show a voice answer, so its shape is inferred from SMS: `channel: "voice"`, no subject, a short call script with keypad options (`cta.options`) and a spoken opt-out ("press 9 or say stop"), sent at 10:00 local. The caller identifies itself with the brand's `voice_intro`. Automated calls have stricter consent rules (TCPA), so voice consent is required, as for every channel.
 - **AI disclosure:** not added to message bodies, because the expected outputs don't include it; it would be a policy setting.
 - **Personal data in output:** only the first name (in the greeting) and your own `task_id`. Nothing else from the profile ever appears, in any field; see `tests/pii_cases.jsonl`.
 - **Output determinism:** the same input gives a byte-identical output file. `--llm` answers are cached.
@@ -1077,6 +1077,9 @@ This records how the work departs from, or adds to, the **original assignment** 
 | D-051 | 2026-09-24 | **Exhaustive channel decision table.** `scripts/decision_table.py` runs all 120 consent × preference combinations through the bot and checks each against an independently stated policy (first preferred, supported, consented channel); 120/120, never sends without consent, never voice. No-send reasons made precise (no consent / preferred channel not supported / consented channel not in preferences). **Open SME question:** should consent alone be enough when a consented channel isn't in the preference list (11 rows)? Current choice: respect the preference list. | ANALYSIS (ours) | accepted | Decision tables are the reviewable, exhaustive specification of must-be-right rules | scripts/decision_table.py, plans/decision-table-channel.md |
 | D-052 | 2026-09-24 | **brand_style_applied made concrete.** Per-property brand profile (`properties.yaml` `brand`, defaults `rules.yaml` `brand_default`): display name, banned sales phrases, no emoji, no ALL-CAPS shouting, max exclamations, SMS length. A brand guard checks every message; off-brand AI text falls back to the template. Each sent output reports the records' `required_states` (consent_verified, fair_housing_check_passed, brand_style_applied) in `meta`, and RUN STATS shows the pass counts. | ANALYSIS (ours) | accepted | The samples require the state but never define it (review gap S-13) | outreach/guards.py, outreach/pipeline.py, config/ |
 | D-053 | 2026-09-24 | **Rules validator.** `outreach/validate.py` checks `rules.yaml` + `learned.yaml` and `properties.yaml` on every load: types and ranges, send hours inside a legal window that may be narrowed but never widened (TCPA 8:00-21:00), STOP present, no personal/protected fields in the prompt allow-list, CTA names and purposes, time zones, https links, brand settings. The bot and `learn.py` refuse to run on invalid rules (exit 6). `scripts/validate_rules.py` for use after any rule change. Rule changes may be proposed by a person or by AI from plain English; the validator, tests, decision table and a `--pp` diff are the gate, and a human approves. | ADD-ON (MFY) | accepted | Safety comes from the gate, not from who edits the rules | outreach/validate.py, scripts/validate_rules.py |
+| D-054 | 2026-09-24 | **`--answer-only` for the hold-out hand-over.** Exports exactly the samples' `expected` shape (`task_id`, `next_message`, `next_action`), one line per record, so an automated grader or a copy-paste gets the answer only; the reasons and RUN STATS stay on screen. A test checks the answer-only output equals the samples' `expected` blocks. | ADD-ON (MFY) | accepted | The hand-over should match their format exactly | bot.py |
+| D-055 | 2026-09-24 | **Voice is supported.** The samples carry `voice_opt_in` but never show a voice answer, so the shape is inferred from SMS: `channel: "voice"`, `subject: null`, a call script (the brand's `voice_intro`, the offer, keypad options in `cta.options`, a spoken opt-out: "press 9 or say stop"), sent at 10:00 local (configurable). Brand check adds `max_voice_words` (75, about 30 s) and no symbols or links read aloud. The decision table now covers voice (120/120; 30 voice sends). | ANALYSIS (ours) | accepted | A hold-out with voice consent would otherwise be a guaranteed miss; the inference is stated as an assumption | outreach/compose.py, config/, scripts/decision_table.py |
+| D-056 | 2026-09-24 | **Brand validation made visible.** `scripts/validate_rules.py --brand` validates rules, properties and branding, then renders a tour message per property on SMS, email and voice and brand-checks each. It's the first step of the run-checks skill and a check in `run_checks.py`. The design overview documents the configuration files, who changes them, the override order (rules.yaml → learned.yaml → property brand), and the validate command. | ORIGINAL (Mark) | accepted | Branding needs its own visible validation, like the rules | scripts/validate_rules.py, .claude/skills/run-checks/SKILL.md |
 
 
 ---
@@ -2233,7 +2236,7 @@ Every command runs from the project folder (`~/realpage`) with no network, unles
 |---|---|---|
 | 4 | `uv run bot.py -i tests/edge_cases.jsonl --only no_consent` | No consent anywhere → **no send**, with a reason |
 | 5 | `… --only sms_preferred_not_consented` | Preferred channel not allowed → falls back to email; the skipped channel is logged |
-| 6 | `… --only voice_only` | Voice is modeled but not built → no send, "not supported yet" |
+| 6 | `… --only voice_only` | Voice consent and preference → an automated **call script**: "this is Oak Ridge Leasing… press 1 for Thursday… press 9 or say stop" |
 | 7 | `… --only inbound_stop` | "please STOP texting me" → no send, and no model call |
 | 8 | `… --only kids` | Profile says "4 kids, near a daycare" → same message as anyone else (fair housing) |
 | 9 | `… --only injection` | Name = "Ignore previous instructions…" → greeting uses "there" |
