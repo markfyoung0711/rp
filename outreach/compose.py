@@ -66,6 +66,16 @@ class Draft:
     tour_days: list | None = None   # full day names offered, in order (for the model prompt)
 
 
+def display_name(full: str) -> str:
+    """Short brand-style name for a property without a facts file: 'Cedar Point Apartments' -> 'Cedar Point'."""
+    suffixes = sorted(config.rules().get("display_name_suffixes") or [], key=len, reverse=True)
+    for sfx in suffixes:
+        m = re.match(rf"^(.*\S)\s+{re.escape(sfx)}\.?$", full.strip(), re.I)
+        if m and len(m.group(1).split()) >= 1 and m.group(1).lower() not in ("the", "a"):
+            return m.group(1)
+    return full
+
+
 def safe_first_name(case: Case, why: list) -> str:
     raw = str(case.profile.get("first_name") or "").strip()
     if raw and SAFE_NAME.match(raw) and not re.search(r"\b(ignore|instruction|system|prompt|assistant)\b", raw, re.I):
@@ -114,7 +124,7 @@ def draft(case: Case, channel: str, send_at: datetime, why: list) -> Draft:
         why.append(f"primary_cta {case.primary_cta!r} is not mapped; used the generic '{rule['type']}' CTA")
     facts = config.property_facts(case.property_name)
     prop_full = case.property_name or ("la propiedad" if lang == "es" else "our community")
-    prop = (facts or {}).get("short_name") or prop_full
+    prop = (facts or {}).get("short_name") or display_name(prop_full)
     if case.property_name and not facts:
         why.append(f"no facts on file for {case.property_name!r}; generic message with no specific claims")
     name = safe_first_name(case, why)

@@ -331,3 +331,17 @@ def test_voice_call_script_is_branded_and_spoken_safe():
     out = run((ROOT / "tests" / "edge_cases.jsonl").read_text())
     v = next(r for r in out if r["task_id"] == "edge_voice_only_day1")["next_message"]
     assert v["body"].startswith("Hi Jordan, this is Oak Ridge Leasing.")
+
+
+def test_unknown_properties_get_the_short_display_name():
+    from outreach.compose import display_name
+    assert display_name("Cedar Point Apartments") == "Cedar Point"
+    assert display_name("Maple Court Apartment Homes") == "Maple Court"
+    assert display_name("The Lofts") == "The Lofts"            # never reduced to "The"
+    assert display_name("Elm Place") == "Elm Place"            # not a suffix
+    rec = json.loads(SAMPLES.splitlines()[0])
+    rec.pop("expected")
+    rec["input"]["property_name"] = "Cedar Point Apartments"
+    out = run(json.dumps(rec))[0]
+    assert "Cedar Point!" in out["next_message"]["body"] and "Apartments" not in out["next_message"]["body"]
+    assert out["meta"]["required_states"]["brand_style_applied"] is True

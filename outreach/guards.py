@@ -110,6 +110,9 @@ def check_brand(channel: str, subject: str | None, body: str, facts: dict | None
         if re.search(r"https?://|[→&@#*/<>]", body):
             problems.append("call script contains symbols or links that don't read aloud")
     display = brand.get("display_name") or (facts or {}).get("short_name")
+    if not display and full_name:
+        from .compose import display_name        # derived short name for properties without a facts file
+        display = display_name(full_name)
     if brand.get("use_display_name", True) and display and full_name and full_name != display and full_name in text:
         problems.append(f"uses the full property name instead of the brand name {display!r}")
     return problems

@@ -111,6 +111,9 @@ def validate_rules(r: dict) -> list[str]:
     if not isinstance(r.get("protected_terms"), list) or not r.get("protected_terms"):
         p.append("protected_terms: must be a non-empty list (fair-housing guard)")
 
+    sfx = r.get("display_name_suffixes", [])
+    if not (isinstance(sfx, list) and all(isinstance(x, str) and x.strip() for x in sfx)):
+        p.append("display_name_suffixes: must be a list of words")
     brand = r.get("brand_default") or {}
     if not isinstance(brand, dict):
         p.append("brand_default: must be a mapping")

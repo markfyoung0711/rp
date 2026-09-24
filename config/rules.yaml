@@ -71,3 +71,8 @@ brand_default:
   banned_phrases: [act now, limited time, hurry, don't miss out, guaranteed, best deal, cheap, urgent,
                    last chance, exclusive offer, click here now, luxury living at its finest]
 
+# For properties with no facts file: derive the short display name the samples use ("Oak Ridge", not
+# "Oak Ridge Apartments") by dropping one of these trailing words.
+display_name_suffixes: [apartment homes, apartments, apts, residences, homes, townhomes, townhouses, lofts, flats,
+                        community, communities]
+
