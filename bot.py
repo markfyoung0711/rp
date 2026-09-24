@@ -10,12 +10,16 @@ import asyncio
 import difflib
 import json
 import os
+import re
 import sys
+import time
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
 from outreach import llm
 from outreach.llm import DEFAULT_MODEL
+from outreach import guards
 from outreach.pipeline import pending_llm_call, process
 from outreach.reader import ReadError, UnsupportedInput, decode_bytes, read_batch
 
@@ -68,6 +72,103 @@ def print_readable(results: list[dict], records: list, show_compare: bool) -> No
             print("  Compare to expected:")
             for f, mark, detail in compare(res, rec["expected"]):
                 print(f"    {mark} {f:<12} {detail}")
+
+
+def _pct(values: list[float], q: float) -> float:
+    v = sorted(values)
+    return v[min(len(v) - 1, int(round(q * (len(v) - 1))))] if v else 0.0
+
+
+def _thresholds(records: list) -> dict:
+    """The strictest thresholds found in the input records (the samples carry a `thresholds` block)."""
+    t: dict = {}
+    for r in records:
+        if isinstance(r, dict) and isinstance(r.get("thresholds"), dict):
+            for k, v in r["thresholds"].items():
+                if isinstance(v, (int, float)):
+                    t[k] = min(t.get(k, v), v) if k.endswith(("_max", "_ms")) else max(t.get(k, v), v)
+    return t
+
+
+def print_stats(results: list[dict], records: list, args, wall_s: float, input_notes: list[str]) -> None:
+    n = len(results)
+    th = _thresholds(records)
+    p95_target = th.get("p95_latency_ms", 2000)
+    safety_max = th.get("safety_violations_max", 0)
+    sent = [r for r in results if r["next_message"]]
+    nosend = [r for r in results if not r["next_message"]]
+    lat = [r["meta"]["latency_ms"] for r in results]
+    unreadable = sum(1 for r in records if isinstance(r, ReadError))
+    repaired = sum(1 for r in results if any(w.startswith(("repaired", "record was", "records unwrapped", "key "))
+                                             for w in r["meta"].get("warnings", [])))
+    warned = sum(1 for r in results if r["meta"].get("warnings"))
+    channels = Counter(r["next_message"]["channel"] for r in sent)
+    reasons = Counter(re.sub(r" at line \d+", "", r["next_action"].get("reason", "?").split(":")[0]) for r in nosend)
+    actions = Counter(r["next_action"]["type"] for r in results)
+    conf = Counter(r["meta"].get("confidence", "?") for r in results)
+    wording = Counter()
+    for r in sent:
+        w = next((x for x in r["why"] if x.startswith("wording:")), "wording: ?")
+        wording["template" if "template" in w and "model" not in w else "model" if "written by" in w else "model → template fallback"] += 1
+
+    violations = []
+    for r in sent:
+        m = r["next_message"]
+        body = m["body"]
+        if "STOP" not in body:
+            violations.append(f"{r['task_id']}: no opt-out")
+        scrubbed = guards.URL.sub("", body)
+        if guards.EMAIL.search(scrubbed) or guards.PHONE.search(scrubbed):
+            violations.append(f"{r['task_id']}: contact details")
+        if guards.protected_hits(f"{m.get('subject') or ''} {body}"):
+            violations.append(f"{r['task_id']}: protected-class term")
+
+    def verdict(ok: bool) -> str:
+        return "PASS" if ok else "FAIL"
+
+    p95 = _pct(lat, 0.95)
+    print("═" * 78)
+    print("RUN STATS")
+    print(f"  Input        {n} record(s)" + (f", {unreadable} unreadable" if unreadable else "")
+          + (f", {repaired} repaired" if repaired else "") + f", {warned} with warnings")
+    for note in input_notes:
+        print(f"               note: {note[:100]}")
+    print(f"  Decisions    send {len(sent)} (" + ", ".join(f"{k} {v}" for k, v in channels.most_common()) + ")"
+          + f" | do not send {len(nosend)}" + (" (" + ", ".join(f"{k}: {v}" for k, v in reasons.most_common()) + ")" if nosend else ""))
+    print("  Next action  " + ", ".join(f"{k} {v}" for k, v in actions.most_common()))
+    print("  Confidence   " + ", ".join(f"{k} {v}" for k, v in conf.most_common()))
+    if sent:
+        print("  Wording      " + ", ".join(f"{k} {v}" for k, v in wording.most_common()))
+    print(f"  Latency      per record: avg {sum(lat) / max(n, 1):.1f} ms, p50 {_pct(lat, 0.5):.1f}, p95 {p95:.1f}, max {max(lat or [0]):.1f} ms"
+          f" | batch {wall_s:.2f} s ({n / wall_s if wall_s else 0:.0f} records/s)")
+    print(f"               p95 target {p95_target} ms{' (from input thresholds)' if 'p95_latency_ms' in th else ''}: {verdict(p95 <= p95_target)}")
+    print(f"  Safety       {len(violations)} violation(s) in {len(sent)} sent message(s); max allowed {safety_max}: "
+          f"{verdict(len(violations) <= safety_max)}")
+    for v in violations[:5]:
+        print(f"               ! {v}")
+    unmeasured = [f"{k} {th[k]}" for k in ("personalization_score_min", "reply_classification_f1_min") if k in th]
+    if unmeasured:
+        print(f"  Not measured {', '.join(unmeasured)} (no scoring rubric in the spec; no replies in the input)")
+    print("  API cost     " + ("$0 (template mode, no API calls)" if not args.llm else "see [cost] line above ($0 if every answer was cached)"))
+
+    if args.compare:
+        scored = [(res, rec) for res, rec in zip(results, records) if isinstance(rec, dict) and isinstance(rec.get("expected"), dict)]
+        if scored:
+            per_field: Counter = Counter()
+            sims = []
+            for res, rec in scored:
+                for f, mark, detail in compare(res, rec["expected"]):
+                    per_field[f] += mark == "✅"
+                    if f == "body":
+                        sims.append(1.0 if mark == "✅" else float(detail.split("%")[0]) / 100 if "%" in detail else 0.0)
+            k = len(scored)
+            print(f"  vs expected  {k} record(s) with an expected block: "
+                  + ", ".join(f"{f} {per_field[f]}/{k}" for f in FIELDS))
+            print(f"               body similarity avg {sum(sims) / len(sims):.0%}, min {min(sims):.0%}")
+            exact = sum(all(m == "✅" for f, m, _ in compare(res, rec["expected"]) if f not in ("subject", "body"))
+                        for res, rec in scored)
+            print(f"Controllable fields (channel, send_at, cta, next_action) all match: {exact}/{k}")
+    print("═" * 78)
 
 
 async def run(records: list, args) -> list[dict]:
@@ -166,7 +267,9 @@ def main() -> None:
             sys.exit(f"No record's task_id contains {args.only!r}.")
     if args.llm:
         cost_gate(records, args)
+    started = time.perf_counter()
     results = asyncio.run(run(records, args))
+    wall_s = time.perf_counter() - started
     seen: dict[str, int] = {}
     for r in results:
         seen[r["task_id"]] = seen.get(r["task_id"], 0) + 1
@@ -176,19 +279,7 @@ def main() -> None:
 
     if not args.quiet:
         print_readable(results, records, args.compare)
-        lat = sorted(r["meta"]["latency_ms"] for r in results)
-        p95 = lat[min(len(lat) - 1, int(round(0.95 * (len(lat) - 1))))]
-        sent = sum(1 for r in results if r["next_message"])
-        bad = sum(1 for r in records if isinstance(r, ReadError))
-        print("─" * 78)
-        print(f"{len(results)} records: {sent} send, {len(results) - sent} do not send"
-              + (f" ({bad} unreadable)" if bad else "") + f" | p95 latency {p95} ms (target 2000)")
-        if args.compare:
-            scored = [(res, rec) for res, rec in zip(results, records) if isinstance(rec, dict) and rec.get("expected")]
-            if scored:
-                exact = sum(all(m == "✅" for f, m, _ in compare(res, rec["expected"]) if f not in ("subject", "body"))
-                            for res, rec in scored)
-                print(f"Controllable fields (channel, send_at, cta, next_action) all match: {exact}/{len(scored)}")
+        print_stats(results, records, args, wall_s, batch.notes + notes)
 
     # Export without timing, so the same input always produces a byte-identical file.
     export = [{**r, "meta": {k: v for k, v in r["meta"].items() if k != "latency_ms"}} for r in results]
