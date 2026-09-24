@@ -1,4 +1,13 @@
-# SME Review: Context-Aware Messaging Bot for Rental Housing
+# Critical Reviews
+
+- **Review 1 of 2:** Claude Sonnet 5 (independent session), 2026-09-24, below.
+- **Review 2 of 2:** SME review, 2026-09-24, [at the end](#review-2-of-2--sme-review), followed by our reconciliation of the two reviews.
+
+---
+
+# Review 1 of 2
+
+## SME Review: Context-Aware Messaging Bot for Rental Housing
 
 **Documents reviewed:** `spec.md` (the assignment) and `solution.md` (solution proposal by Mark F. Young, updated 2026-09-24)
 **Review date:** 2026-09-24
@@ -345,3 +354,87 @@ Sample 1 sends on a Tuesday, and the expected "Thursday or Friday" is send date 
 | "And why" | Partial | Decision reasons exist; not in output shape |
 | `next_action` | Partial | Two data points; horizon rule missing (F-15) |
 | Export of 12 hold-out outputs | Gap | No export path or format defined |
+
+
+---
+
+# Review 2 of 2 — SME review
+
+> Pasted verbatim, 2026-09-24.
+
+## 🚨 SME Critical Review & Red Flag Analysis
+Mark, you are in immediate danger of failing this interview demo at 12:00 Noon today.
+As a property management Subject Matter Expert (SME), I can tell you that your architecture document is incredibly thorough, but your focus is dangerously misplaced for a noon delivery. You have succumbed to extreme scope creep. You are spending critical hours designing complex database schemas, CRM dashboards, multi-tenant RBAC logic, and external Yelp/Google review pipelines.
+The interviewer gave you one explicit, unbending directive: "Be prepared to ‘export’ or ‘copy-paste’ the 12 outputs from a hold-out set that is provided during the interview".
+If your core script cannot process a raw JSONL file, evaluate the 12 lines within 2 seconds per line, and spit out structurally perfect JSON matching the expected schema, you will fail.. It will not matter that your React front end looks like Zendesk.
+------------------------------
+## 1. Direct Answers to Your Challenge Questions## 1. "Does the design respect 'learns what to do only from input data'?" [2]
+No, but your implementation strategy is still correct. Pure machine learning where the code learns dynamically on the fly from two records is impossible. Your approach—using deterministic python code for execution rules and an LLM for copy generation—is the only way to build a stable system by noon.
+
+* The "Learn Only" Fix: To truly claim your bot "learns from input data," you must feed the existing sample.jsonl file directly into your LLM prompt as Few-Shot Examples. Let the LLM read the input and expected blocks of the samples to "learn" the semantic translation, while your Python wrapper handles strict gates like channel consent.
+
+## 2. "Which rules inferred from only 2 samples are overfit?" [2]
+
+* The Send-Time Rule: Your assumption that "all messages send on 2025-12-09 in the morning" is highly overfit. Look closely at the task_id fields. prospect_welcome_day0 was sent exactly 1 day after the last_interaction (12-08 to 12-09). prospect_long_horizon_day3 was sent exactly 3 days after its last_interaction (12-06 to 12-09). The send_at date is calculated by adding the day offset implied in the lifecycle cadence to the last_interaction timestamp.
+* The Morning-Hour Rule: The 09:00 vs 10:00 send times aren't random. Notice that the email target is 10:00 and the SMS is 09:00. This implies property management compliance: texting earlier to grab attention, delaying emails slightly so they don't get lost in a morning inbox sweep.
+
+## 3. "Is the add-on scope at risk of crowding out the graded core?" [2]
+Yes, completely. You have designated 13 use cases to "Add-on Scope". None of them matter at 12:00 PM. If you spend time writing an attachment scanner for billing disputes or an integration for Yelp APIs before the 12-line batch processor is bulletproof, you are tanking the demo.
+## 4. "Gaps and risks: database choice, legal, security" [2]
+For the noon demo, the database choice is irrelevant because you shouldn't use one.. Your pipeline must be stateless: JSONL String In ➡️ Process ➡️ JSONL String Out.
+------------------------------
+## 2. The Real Estate SME Risk Matrix: The True "Hold-Out" Traps
+Your hold-out set table is accurate, but you missed the most lethal real estate specific edge-cases that an industry interviewer will use to break your bot:
+
+| Hold-Out Scenario | The Real Estate SME Operational Risk | What Your Bot Must Do |
+|---|---|---|
+| The Familial Status Trap | A prospect's profile text says: "Moving with my 4 kids, need a place near a daycare." [2] | Fair Housing Violation (FHA). The LLM must never mention the children, comment on the family size, or limit property options to ground floors or specific blocks ("steering"). It must treat them identically to a solo applicant. |
+| The Absolute Silencer (STOP) | Inbound text contains standard TCPA keywords: "STOP", "QUIT", "UNSUBSCRIBE". | Immediate Suppression. Hardcode a regex router at the very front of your script. If these keywords hit, set next_message to null and do not invoke the LLM. Do not risk an LLM ignoring or hallucinating a compliance command. |
+| The Over-the-Line CTA | The primary_cta is passed as collect_deposit or sign_lease instead of book_tour. | Fallback Logic. The system must map this to a secure link schema (https://property.example) and change body text from welcoming to transactional, while retaining opt-out copy. |
+
+------------------------------
+## 3. Immediate Triage Action Plan (Next 8 Hours)
+Stop working on the web interface, the Docker configuration, and the database migrations. Do this instead:
+
+   1. Build a Pure CLI Batch Processor (run_eval.py):
+   Create a script that accepts an arbitrary file path (python run_eval.py --input holdout.jsonl), loops through every line, executes your bot logic concurrently to respect the p95_latency_ms: 2000 threshold, and writes an output JSONL file.
+   2. Hardcode the Structural Mappings:
+   Do not let the LLM guess the JSON structure. Use Pydantic with response_format={"type": "json_object"} to guarantee your output explicitly mirrors the expected block: channel, send_at, subject, body, and cta.
+   3. Draft Your Mock Hold-Out Dataset Now:
+   Generate 12 lines of fake test cases right now based on your variations table. Run them through your CLI. If your script crashes on a missing profile field or a non-Chicago timezone, fix the exception handling immediately.
+
+To ensure your script doesn't throw a validation error during the live run, tell me:
+
+* Have you already written the Pydantic schema for the output object?
+* What Python framework are you using to manage your LLM calls (e.g., raw OpenAI/Anthropic SDK, LangChain, Instructor)?
+
+I can provide the clean wrapper code to ensure your processing stays under the 2-second timeout window.
+
+---
+
+# Reconciliation of reviews 1 and 2
+
+> **ANALYSIS — ours.** Where the two reviews agree, where they differ, and what we are adopting.
+
+**Both agree:**
+- the add-on scope must be cut for today
+- no database; a stateless batch process: JSONL in → one output per record → JSONL out
+- fixed code handles gates, consent, STOP and the output structure; the LLM writes only the wording
+- `send_at` = `last_interaction` + the cadence day offset, not a shared "today". This replaces D-002's reading.
+- build our own mock hold-out set now and harden against missing fields and other timezones
+
+**Where review 2 needs correcting or qualifying:**
+
+| Claim in review 2 | Our assessment |
+|---|---|
+| `day0` was sent "exactly 1 day after" last interaction | That contradicts its own offset rule (day0 = +0 days). Review 1's explanation fits better: at +0 days the 09:00 slot had already passed (last interaction was 09:04 local), so the send rolls to the next day's 09:00. |
+| SMS goes at 09:00 and email at 10:00, as a rule | Plausible, but only one data point per channel, and the channel *and* the cadence both differ between the two samples. Keep the send hour in config (per channel), state it as an assumption, and don't claim it as a compliance rule. |
+| `response_format={"type": "json_object"}` | That is OpenAI's API. With Claude, use structured outputs (tool/JSON schema) validated by Pydantic. Better still, the model returns only the text slots (subject and body) and code assembles the rest (D-025). |
+| Map `collect_deposit` / `sign_lease` to `https://property.example` | Agree with the transactional tone and keeping the opt-out wording. But a made-up link is an unsourced fact (D-024): use a link from the declared property-facts source, or a clearly marked placeholder, and flag it. |
+| Feed `sample.jsonl` into the prompt as few-shot examples | Adopt. This is our best answer to "learns only from input data". Keep the mock hold-out cases *out* of the prompt so the evaluation stays honest (D-026). |
+
+**New from review 2 (adopted):**
+- **Familial-status trap:** protected-class details in the profile (children, religion, disability, national origin, …) must never appear in the message or change what is offered. Remove them before the prompt and check the output. Add a mock hold-out case for this.
+- **STOP keywords:** a fixed keyword gate (STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT) at the very front, before any model call. If any inbound text field matches: no message, and the LLM is not called.
+- **Unknown or transactional `primary_cta`:** a fallback CTA table, with a transactional tone and the opt-out wording kept.
+- **CLI first:** `run_eval.py --input <file> --output <file>`, with records processed concurrently and latency measured against the 2,000 ms p95.
