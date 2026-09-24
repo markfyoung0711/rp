@@ -6,10 +6,16 @@ requires-python = ">=3.12"
 dependencies = [
     "anthropic>=0.40",
     "pyyaml>=6",
+    "tzdata>=2024.1",   # time-zone data on machines without it (e.g. Windows)
 ]
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = [
+    "mypy>=2.3.1",
+    "pytest>=8",
+    "ruff>=0.16.8",
+    "types-pyyaml>=6.0.12.20260906",
+]
 
 [tool.uv]
 package = false

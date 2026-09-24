@@ -51,7 +51,7 @@ SUBJECTS = {
            "payment": "Recordatorio de pago de {prop}", "renewal": "Tus opciones de renovación en {prop}",
            "maintenance": "Tu solicitud de mantenimiento en {prop}", "general": "Seguimiento de {prop}"},
 }
-SAFE_NAME = re.compile(r"^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ'’ .-]{0,29}$")
+SAFE_NAME = re.compile(r"^[^\W\d_][^\W\d_'’ .-]{0,29}$")   # any script's letters, plus ' ’ space . -
 
 
 @dataclass
@@ -61,7 +61,7 @@ class Draft:
     tail: str
     cta: dict
     facts_used: bool
-    tour_days: list = None      # full day names offered, in order (for the model prompt)
+    tour_days: list | None = None   # full day names offered, in order (for the model prompt)
 
 
 def safe_first_name(case: Case, why: list) -> str:

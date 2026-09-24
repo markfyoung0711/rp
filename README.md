@@ -1,0 +1,65 @@
+# Leasing Outreach Decision Bot
+
+For each record, the bot decides **whether** to contact the person, and if so **on which channel**, **when**, and **with what message**, plus the **next action**. It takes JSON records in and gives one decision per record out. This is the RealPage take-home; the assignment is in [`plans/spec.md`](plans/spec.md).
+
+## Run it
+
+Requires [uv](https://docs.astral.sh/uv/) and Python 3.12+.
+
+```bash
+uv sync                                                    # install (once)
+uv run bot.py -i plans/sample.jsonl --compare              # the two samples, compared field by field
+uv run bot.py -i tests/edge_cases.jsonl                    # 16 unseen-style cases (Levels 1-3)
+uv run bot.py -i holdout.jsonl -o out/holdout.jsonl        # a hold-out file -> an output file
+uv run bot.py --paste -o out/holdout.jsonl                 # paste records, then Ctrl+D
+uv run pytest                                              # tests
+```
+
+Input can be JSONL, a JSON array, or pretty-printed objects. The screen shows each decision with its reasons, then the whole batch between `=== BEGIN OUTPUT ===` and `=== END OUTPUT ===` for copy-paste. Add `--llm` to have Claude (Haiku 4.5) write the wording; it needs `ANTHROPIC_API_KEY` and falls back to the templates if the API is unavailable.
+
+## Output (one line per record)
+
+```json
+{"task_id": "...", "next_message": {"channel", "send_at", "subject", "body", "cta"} | null,
+ "next_action": {...}, "why": ["one line per decision"], "meta": {"record_type", "confidence", "mode", "warnings"}}
+```
+
+`next_message` and `next_action` follow the samples' `expected` shape. A no-send has `next_message: null` and `next_action: {"type": "suppress" | "human_review", "reason": ...}`.
+
+## How it decides
+
+| Step | Done by | Rule |
+|---|---|---|
+| Read | code | A bad record becomes a no-send with a reason; the rest still run |
+| STOP / opt-out | code | Any opt-out flag or STOP keyword → no send, and no model call |
+| Channel | code | The first preferred channel with consent; voice is skipped (not built) |
+| Send time | code | Local `last_interaction` + the `dayN` in the task_id (else a stage default), at 09:00 for SMS or 10:00 for email; moved to the next day if that time isn't after the last interaction |
+| Next action | code | A new lead starts a cadence (`short` if ≤ 45 days to move-in, else `long`); otherwise follow up in 3 days |
+| Wording | template (default) or Claude (`--llm`) | Property claims come only from `config/properties.yaml` |
+| CTA and opt-out | code | Fixed text per channel and language; never written by the model |
+| Guards | code | Opt-out present, no phone or email in the body, no protected-class terms, unsafe names → "there" |
+
+The rules live in [`config/rules.yaml`](config/rules.yaml). Each table has a default row for values the bot hasn't seen before.
+
+## Built vs designed
+
+| Built and runnable | Designed, not built (see [`plans/solution.md`](plans/solution.md)) |
+|---|---|
+| Batch CLI, three input formats, export file plus a readable view | Database, APIs, login |
+| Consent/STOP gate, channel, send time, next action | Owner / support / renter web UI |
+| Templates (English, Spanish) and the optional Claude wording | Real SMS/email/voice sending, inbound replies |
+| Guards; handling of unseen records at Levels 1–3 | Sentiment tracking, review-site ingestion |
+| 16 edge cases and tests | Adjacent agents (maintenance, billing, …) |
+
+## Assumptions
+
+These were inferred from two samples and stated rather than hidden. The details are in [`plans/decisions.md`](plans/decisions.md).
+
+- **Send time:** the rule above; 09:00/10:00 are per-channel settings in `config/rules.yaml`. Use `--now` to set a reference time.
+- **Property facts** (tour days, amenities, links) come from `config/properties.yaml`. For an unknown property the message makes no specific claims.
+- **Horizon threshold:** 45 days to move-in (samples: 32 → short).
+- **No-send shape:** as above. The assignment doesn't define one.
+- **Consent:** only an explicit opt-in counts; missing or unclear consent means no send.
+- **Voice:** modeled but not built; skipped, with a reason.
+- **AI disclosure:** not added to message bodies, because the expected outputs don't include it; it would be a policy setting.
+- **Output determinism:** the same input gives a byte-identical output file. `--llm` answers are cached.

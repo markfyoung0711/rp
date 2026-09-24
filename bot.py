@@ -96,6 +96,12 @@ def main() -> None:
         sys.exit("No records found.")
 
     results = asyncio.run(run(records, args))
+    seen: dict[str, int] = {}
+    for r in results:
+        seen[r["task_id"]] = seen.get(r["task_id"], 0) + 1
+    for r in results:
+        if seen[r["task_id"]] > 1:
+            r["meta"].setdefault("warnings", []).append(f"task_id {r['task_id']!r} appears {seen[r['task_id']]} times in this batch")
 
     if not args.quiet:
         print_readable(results, records, args.compare)
@@ -113,7 +119,9 @@ def main() -> None:
                             for res, rec in scored)
                 print(f"Controllable fields (channel, send_at, cta, next_action) all match: {exact}/{len(scored)}")
 
-    lines = [json.dumps(r, ensure_ascii=False) for r in results]
+    # Export without timing, so the same input always produces a byte-identical file.
+    export = [{**r, "meta": {k: v for k, v in r["meta"].items() if k != "latency_ms"}} for r in results]
+    lines = [json.dumps(r, ensure_ascii=False) for r in export]
     if args.output:
         out = Path(args.output)
         out.parent.mkdir(parents=True, exist_ok=True)

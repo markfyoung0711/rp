@@ -121,7 +121,7 @@ async def write(case: Case, channel: str, draft: compose.Draft, model: str, why:
         try:
             if _client is None:
                 from anthropic import AsyncAnthropic
-                _client = AsyncAnthropic(timeout=20.0, max_retries=2)
+                _client = AsyncAnthropic(timeout=8.0, max_retries=1)  # worst case ~16 s, then the template
                 _semaphore = asyncio.Semaphore(16)
             async with _semaphore:
                 # SDK 1.x has no `temperature` kwarg; Haiku 4.5 still honours it via extra_body.
@@ -136,7 +136,7 @@ async def write(case: Case, channel: str, draft: compose.Draft, model: str, why:
             result = {"subject": block.input.get("subject"), "core": block.input.get("core") or ""}
             CACHE_DIR.mkdir(parents=True, exist_ok=True)
             cache_file.write_text(json.dumps(result, ensure_ascii=False))
-        except Exception as e:  # network, auth, rate limit, bad output: keep the template
+        except Exception as e:  # noqa: BLE001 -- network, auth, rate limit, bad output: keep the template
             why.append(f"wording: model call failed ({type(e).__name__}); used the template")
             return None
 

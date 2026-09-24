@@ -186,6 +186,10 @@ def normalize(rec: dict) -> Case:
     prefs_raw = rec.get("channel_preferences") or get("channel_preferences", "preferred_channels", "preferred_channel", "channels")
     if isinstance(prefs_raw, str):
         prefs_raw = re.split(r"[,;/ ]+", prefs_raw)
+    if not isinstance(prefs_raw, (list, tuple)):
+        if prefs_raw not in (None, ""):
+            warnings.append(f"channel_preferences has an unexpected type ({type(prefs_raw).__name__}); ignored")
+        prefs_raw = []
     preferences = [_channel(c) for c in (prefs_raw or []) if c]
     if not preferences:
         preferences = list(config.rules()["channels"]["default_order"])

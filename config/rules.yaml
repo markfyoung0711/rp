@@ -55,4 +55,5 @@ profile_allow_list: [first_name, amenity_interest, city_interest, unit_interest,
 protected_terms: [kid, kids, child, children, baby, babies, pregnan, family size, familial,
   religio, church, mosque, synagogue, temple, christian, muslim, jewish, disab, wheelchair,
   handicap, race, racial, ethnic, national origin, immigra, nationality, citizenship,
-  gender, sexual orientation, married, single mom, single dad, elderly, senior, retiree]
+  gender, sexual orientation, married, single mom, single dad, elderly, senior, retiree,
+  famil, adults only, adult only, no kids, couples, singles, young professionals, empty nester]

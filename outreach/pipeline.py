@@ -34,7 +34,7 @@ async def process(item, *, use_llm: bool = False, model: str = "claude-haiku-4-5
     started = _time.perf_counter()
     try:
         out = await _process(item, use_llm, model, now)
-    except Exception as e:  # last-resort safety net: never crash the batch
+    except Exception as e:  # noqa: BLE001 -- last-resort safety net: never crash the batch
         tid = item.get("task_id", "unknown") if isinstance(item, dict) else "unknown"
         out = _no_send(str(tid), f"internal error: {type(e).__name__}: {e}", [], [], action="human_review")
     out["meta"]["latency_ms"] = round((_time.perf_counter() - started) * 1000, 1)
