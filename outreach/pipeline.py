@@ -166,6 +166,15 @@ async def _process(item, use_llm: bool, model: str, now: datetime | None) -> dic
     why.append(f"brand: {brand_src} applied (name, tone, no banned phrases, no emoji or shouting, length)")
 
     purpose = compose.config.cta_rule(case.primary_cta)[0]["purpose"]
+    if case.last_interaction is None:
+        # No rule says when to send without a last interaction: don't guess. Hold it for an SME with the draft attached.
+        proposed = {"next_message": {"channel": channel, "send_at": None, "subject": subject if channel == "email" else None,
+                                     "body": body, "cta": draft.cta},
+                    "next_action": decide.next_action(case, purpose, send_at, [])}
+        review = {"question": "The record has no last_interaction. When should this message be sent, and counted from what?",
+                  "proposed": proposed}
+        return _no_send(case.task_id, "send time can't be determined (no last_interaction)", why, case.warnings,
+                        action="human_review", code="send_time_undetermined", review=review, **base_meta)
     return {
         "task_id": case.task_id,
         "next_message": {

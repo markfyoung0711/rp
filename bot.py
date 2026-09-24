@@ -275,12 +275,37 @@ Estimates are local (no API call) and use list prices; actual billing may differ
     sys.exit(3)
 
 
+def write_review_queue(records: list, results: list[dict], args) -> None:
+    """Records the bot won't decide on its own (next_action human_review), with the question and any draft, for an SME."""
+    items = []
+    for rec, r in zip(records, results):
+        if r["next_action"].get("type") != "human_review":
+            continue
+        review = r["meta"].get("review") or {}
+        items.append({"task_id": r["task_id"], "reason": r["next_action"].get("reason"),
+                      "detail": r["meta"].get("no_send_reason"),
+                      "question": review.get("question") or "Decide this record by hand: " + str(r["meta"].get("no_send_reason")),
+                      "proposed": review.get("proposed"), "why": r["why"], "warnings": r["meta"].get("warnings", []),
+                      "record": None if isinstance(rec, ReadError) else {k: v for k, v in rec.items() if k != "_ingest"}})
+    path = args.review_queue or (str(Path(args.output).with_suffix("")) + ".review.jsonl" if args.output else None)
+    if not path:
+        if items:
+            print(f"SME review: {len(items)} record(s) held; add --output or --review-queue to write the queue")
+        return
+    out = Path(path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items), encoding="utf-8")
+    print(f"SME review: {len(items)} record(s) held -> {out}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Decide the next outreach message for each record.")
     src = ap.add_mutually_exclusive_group(required=True)
     src.add_argument("--input", "-i", help="JSONL, JSON array, or pretty-printed JSON objects")
     src.add_argument("--paste", action="store_true", help="read records from the terminal (end with Ctrl+D)")
     ap.add_argument("--output", "-o", help="write results as JSONL to this file")
+    ap.add_argument("--review-queue", help="write records held for SME review to this JSONL file "
+                                           "(default with --output: <output>.review.jsonl)")
     ap.add_argument("--llm", action="store_true", help="have Claude write the wording (decisions stay in code)")
     ap.add_argument("--model", default=DEFAULT_MODEL, help=f"model for --llm (default {DEFAULT_MODEL})")
     ap.add_argument("--now", help="reference time, ISO 8601; sends never land before it")
@@ -370,6 +395,7 @@ def main() -> None:
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text("\n".join(lines) + "\n", encoding="utf-8")
         print(f"Wrote {len(lines)} results to {out}")
+    write_review_queue(records, results, args)
     print("=== BEGIN OUTPUT ===")
     print("\n".join(lines))
     print("=== END OUTPUT ===")

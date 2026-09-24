@@ -547,7 +547,7 @@ def test_follow_up_days_from_input_else_default():
 def test_stage_playbook_renewal_links_and_reply_options():
     base = {"task_id": "r1", "persona": "resident", "lifecycle_stage": "renewal_details_requested",
             "consent": {"email_opt_in": True, "sms_opt_in": True, "voice_opt_in": False}, "channel_preferences": ["email"],
-            "input": {"property_name": "Oak Ridge Apartments", "unit": "A‑204", "language": "en",
+            "input": {"property_name": "Oak Ridge Apartments", "unit": "A‑204", "language": "en", "last_interaction": "2025-12-08T15:04:00Z",
                       "profile": {"first_name": "Jordan"}}}
     out = run(json.dumps(base))[0]
     assert out["next_message"]["cta"] == {"type": "review_renewal_details",
@@ -562,3 +562,20 @@ def test_stage_playbook_renewal_links_and_reply_options():
     out = run(json.dumps(undecided))[0]
     assert out["next_message"]["cta"]["options"] == ["yes", "no", "details"]                     # not YAML booleans
     assert out["next_action"]["mapping"]["yes"] == "start_esign_flow"
+
+
+def test_no_last_interaction_is_held_for_sme_review_not_guessed(tmp_path):
+    import subprocess
+    rec = json.loads(SAMPLES.splitlines()[1])
+    rec.pop("expected")
+    del rec["input"]["last_interaction"]
+    out = run(json.dumps(rec))[0]
+    assert sent_message(out) is None
+    assert out["next_action"] == {"type": "human_review", "reason": "send_time_undetermined"}
+    proposed = out["meta"]["review"]["proposed"]
+    assert proposed["next_message"]["send_at"] is None and "STOP" in proposed["next_message"]["body"]
+    src, dst = tmp_path / "in.jsonl", tmp_path / "out.jsonl"
+    src.write_text(json.dumps(rec) + "\n" + SAMPLES.splitlines()[0] + "\n")
+    subprocess.run(["uv", "run", "bot.py", "-i", str(src), "-o", str(dst), "--quiet"], check=True, capture_output=True)
+    queue = [json.loads(x) for x in (tmp_path / "out.review.jsonl").read_text().splitlines()]
+    assert [q["task_id"] for q in queue] == [rec["task_id"]] and queue[0]["question"] and queue[0]["record"]

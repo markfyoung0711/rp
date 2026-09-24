@@ -74,7 +74,8 @@ def send_time(case: Case, channel: str, now: datetime | None, why: list) -> date
     base = case.last_interaction
     if base is None:
         base = now or datetime.now(case.tz)
-        case.warnings.append("last_interaction missing; counted from " + ("--now" if now else "the current time (not reproducible)"))
+        case.warnings.append("last_interaction missing; send time can't be determined: held for SME review "
+                             "(the draft uses a provisional date)")
     base_local = base.astimezone(case.tz)
     offset = day_offset(case, why)
 

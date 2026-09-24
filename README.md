@@ -73,7 +73,8 @@ The decision rules are **learned from labelled examples**, meaning records that 
 
 These were inferred from two samples and stated rather than hidden. The details are in [`plans/decisions.md`](plans/decisions.md).
 
-- **Send time:** the rule above; 09:00/10:00 are per-channel settings in `config/rules.yaml`. Use `--now` to set a reference time.
+- **Send time:** the rule above; 09:00/10:00 are per-channel settings in `config/rules.yaml`. Use `--now` to set a reference time. A record with no `last_interaction` has no send-time rule, so the bot doesn't guess: it's held (`human_review`, `send_time_undetermined`) and written to the **SME review queue**.
+- **SME review queue:** every `human_review` result is written to `<output>.review.jsonl` (or `--review-queue PATH`) with the reason, a question for the SME, the proposed message and next action (when there is one, with `send_at` left empty), the decision trace and the input record.
 - **Property facts** (tour days, amenities, links) come from `config/properties.yaml`. For an unknown property the message makes no specific claims.
 - **Horizon threshold:** 50 days to move-in, learned from the samples (32 days → short, 68 days → long; the true cut-off lies in 32–67). The hand-written default is 45.
 - **No-send shape:** as above. The assignment doesn't define one; the shape and `no_contact_consent` come from the hold-out's expected output, the other reason codes are ours.
