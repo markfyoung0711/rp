@@ -1,0 +1,445 @@
+<title>Record Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#F4F5F1; --surface:#FFFFFF; --ink:#1B2320; --muted:#5C6964; --rule:#DCE1DC;
+  --accent:#2E6A58; --accent-soft:#E3EEE9; --say:#8A5A12; --say-soft:#F6EEDF;
+  --code-bg:#17201D; --code-ink:#DDE7E2; --code-muted:#86A096;
+  --warn:#A2412F; --warn-soft:#F7E7E3;
+  --sans:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#121816; --surface:#1A2320; --ink:#E4EBE7; --muted:#9AABA4; --rule:#2B3833;
+    --accent:#7CC3AA; --accent-soft:#1F3830; --say:#E2B56B; --say-soft:#33291A;
+    --code-bg:#0B100E; --code-ink:#DDE7E2; --code-muted:#7F968D;
+    --warn:#EE9A88; --warn-soft:#3A221D;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#121816; --surface:#1A2320; --ink:#E4EBE7; --muted:#9AABA4; --rule:#2B3833;
+  --accent:#7CC3AA; --accent-soft:#1F3830; --say:#E2B56B; --say-soft:#33291A;
+  --code-bg:#0B100E; --code-ink:#DDE7E2; --code-muted:#7F968D;
+  --warn:#EE9A88; --warn-soft:#3A221D;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6}
+.wrap{max-width:760px;margin:0 auto;padding-inline:20px;padding-block:40px 72px}
+header{display:grid;gap:10px;padding-bottom:24px;border-bottom:1px solid var(--rule)}
+.eyebrow{font:500 12px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:clamp(28px,5vw,38px);line-height:1.15;margin:0;text-wrap:balance;font-weight:700;letter-spacing:-.01em}
+.lede{margin:0;color:var(--muted);max-width:62ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.pill{font:500 12.5px/1 var(--mono);padding:7px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+h2{font-size:21px;line-height:1.3;margin:44px 0 12px;text-wrap:balance}
+h3{font-size:17px;margin:0;line-height:1.35}
+p{margin:0 0 12px;max-width:66ch}
+.muted{color:var(--muted)}
+.note{background:var(--warn-soft);color:var(--ink);border-radius:8px;padding:12px 14px;font-size:15px;margin:18px 0 0}
+.note strong{color:var(--warn)}
+ul.check{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+ul.check li{display:flex;gap:10px;align-items:flex-start}
+ul.check input{margin-top:5px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+ol.steps{list-style:none;padding:0;margin:0;counter-reset:s;display:grid;gap:0}
+ol.steps>li{counter-increment:s;display:grid;grid-template-columns:40px 1fr;gap:4px 14px;padding:22px 0;border-top:1px solid var(--rule)}
+ol.steps>li:first-child{border-top:0;padding-top:6px}
+ol.steps>li::before{content:counter(s);font:600 15px/1 var(--mono);color:var(--accent);border:1.5px solid var(--accent);border-radius:50%;width:32px;height:32px;display:grid;place-items:center;margin-top:-2px}
+.step-body{display:grid;gap:10px;min-width:0}
+.tag{font:600 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.cmd{min-width:0;max-width:100%;position:relative;background:var(--code-bg);color:var(--code-ink);border-radius:8px;font:14px/1.55 var(--mono);display:flex;align-items:flex-start;gap:8px;padding:12px 12px 12px 14px}
+.cmd pre{margin:0;overflow-x:auto;flex:1;min-width:0;white-space:pre}
+.cmd pre::before{content:"$ ";color:var(--code-muted)}
+.cmd button{flex:none;font:500 12px/1 var(--mono);background:transparent;color:var(--code-muted);border:1px solid #34443E;border-radius:6px;padding:7px 9px;cursor:pointer}
+.cmd button:hover{color:var(--code-ink);border-color:var(--code-muted)}
+.cmd button:focus-visible,.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.say{background:var(--say-soft);border-radius:8px;padding:12px 14px}
+.say .tag{color:var(--say)}
+.say p{margin:0;font-style:italic}
+.show{color:var(--muted);font-size:15px;margin:0}
+.show b{color:var(--ink);font-weight:600}
+.alt{display:grid;gap:10px;grid-template-columns:1fr}
+.alt>div{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:12px;display:grid;gap:8px;align-content:start;min-width:0}
+.alt h4{margin:0;font-size:14px}
+.tablewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:10px 12px;border-top:1px solid var(--rule);vertical-align:top}
+thead th{border-top:0;font:600 12px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--ground)}
+td:first-child{font-weight:600;min-width:160px}
+th.grp{background:var(--accent-soft);color:var(--accent);font:600 12px/1.3 var(--mono);letter-spacing:.05em;text-transform:uppercase}
+code{font:13.5px var(--mono);background:var(--accent-soft);color:var(--ink);padding:1px 5px;border-radius:4px}
+td.t-num{min-width:0;font:600 12px var(--mono);color:var(--muted);white-space:nowrap}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.roles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.roles>div{border:1px solid var(--rule);border-radius:8px;padding:12px 14px;background:var(--surface)}
+.roles .you{border-color:var(--accent);background:var(--accent-soft)}
+.roles b{display:block;margin-bottom:2px}
+.roles span{color:var(--muted);font-size:14.5px}
+ol.plain{margin:0;padding-left:22px;display:grid;gap:6px}
+footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);color:var(--muted);font-size:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+h3.q{font-size:16.5px;margin:26px 0 6px;color:var(--ink)}
+h3.q::before{content:"Q  ";font:600 12px var(--mono);color:var(--accent)}
+p.a{margin:0 0 6px}
+.prove{font:600 12px var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--accent)}
+code.run{display:inline-block;margin-top:4px;background:var(--code-bg);color:var(--code-ink);padding:4px 8px;border-radius:6px;font-size:13px;overflow-wrap:anywhere}
+hr{border:0;border-top:1px solid var(--rule);margin:36px 0 8px}
+pre.mermaid{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:16px;overflow-x:auto;text-align:center}
+ul{padding-left:22px}
+td:first-child{min-width:130px}
+td:first-child{min-width:150px;white-space:nowrap}
+td code{white-space:nowrap}
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow">RealPage interview · reference</div>
+  <h1>What every field in the records means</h1>
+  <p class="lede">Plain English, using sample 1 (Taylor, Oak Ridge) as the running example: what each field is, what it means in leasing terms, and what the bot does with it.</p>
+</header>
+<h2>The big picture</h2>
+<p>Each line of the JSONL file is <strong>one person at one moment</strong>: a lead or resident the property might contact next. A record has three parts:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>What it is</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Input</strong></td>
+<td>Who the person is, what they allow, and their situation</td>
+<td>Taylor, a new prospect, opted in to SMS and email, moving mid-January</td>
+</tr>
+<tr>
+<td><strong>Rules to follow</strong></td>
+<td>Conditions the message must meet</td>
+<td>Include opt-out wording, don't leak personal data, pass fair housing</td>
+</tr>
+<tr>
+<td><strong>Expected</strong> (the answer key)</td>
+<td>What the right next message would be</td>
+<td>An SMS at 9:00 the next morning offering Thursday or Friday tours</td>
+</tr>
+</tbody>
+</table></div>
+<p>The bot reads the first two parts and produces its own version of the third. The hold-out records may not include the answer key.</p>
+<hr />
+<h2>1. Identity and situation</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Example</th>
+<th>Plain meaning</th>
+<th>What the bot does with it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>task_id</code></td>
+<td><code>prospect_welcome_day0</code></td>
+<td>A label for this test case: the scenario (a prospect welcome), plus <strong>day0</strong>, meaning the step of the sequence (day 0 = the first message)</td>
+<td>Echoes it in the output so results can be matched to inputs. Reads the <strong>dayN</strong> to set the send day.</td>
+</tr>
+<tr>
+<td><code>persona</code></td>
+<td><code>prospect</code></td>
+<td><strong>Who</strong> the person is to the property. A <em>prospect</em> is someone thinking of renting; a <em>resident</em> already lives there; an <em>applicant</em> has applied</td>
+<td>Chooses the kind of message: a prospect gets a tour invitation, a resident a rent or renewal reminder</td>
+</tr>
+<tr>
+<td><code>lifecycle_stage</code></td>
+<td><code>new</code></td>
+<td><strong>Where</strong> they are in the process. <em>new</em> = just became a lead; <em>open</em> = an active lead who's been contacted before</td>
+<td>A new lead starts a welcome sequence; anyone else gets a follow-up</td>
+</tr>
+</tbody>
+</table></div>
+<h2>2. Permission and preferences</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Example</th>
+<th>Plain meaning</th>
+<th>What the bot does with it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>consent.sms_opt_in</code></td>
+<td><code>true</code></td>
+<td>Did they agree to receive <strong>texts</strong>?</td>
+<td>Never texts without it (the law requires consent)</td>
+</tr>
+<tr>
+<td><code>consent.email_opt_in</code></td>
+<td><code>true</code></td>
+<td>Did they agree to receive <strong>emails</strong>?</td>
+<td>Never emails without it</td>
+</tr>
+<tr>
+<td><code>consent.voice_opt_in</code></td>
+<td><code>false</code></td>
+<td>Did they agree to <strong>phone calls</strong>?</td>
+<td>Voice isn't built, so it's skipped with a reason</td>
+</tr>
+<tr>
+<td><code>channel_preferences</code></td>
+<td><code>["sms", "email"]</code></td>
+<td>The order they'd like to hear from you: here, text first, then email</td>
+<td>Takes the <strong>first channel in this list that has consent</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h2>3. The situation (<code>input</code>)</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Example</th>
+<th>Plain meaning</th>
+<th>What the bot does with it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>property_name</code></td>
+<td><code>Oak Ridge Apartments</code></td>
+<td>The apartment community they're interested in</td>
+<td>Looks up its details (short name, tour days, links, brand) in <code>config/properties.yaml</code></td>
+</tr>
+<tr>
+<td><code>move_date_target</code></td>
+<td><code>2026-01-10</code></td>
+<td>When they want to move in</td>
+<td>Measures <strong>days to move-in</strong>: under 50 → a short sequence, over → a long one. Emails mention it ("mid-January move")</td>
+</tr>
+<tr>
+<td><code>last_interaction</code></td>
+<td><code>2025-12-08T15:04:00Z</code></td>
+<td>When they last got in touch, in UTC (the "Z")</td>
+<td>The starting point for the send time</td>
+</tr>
+<tr>
+<td><code>timezone</code></td>
+<td><code>America/Chicago</code></td>
+<td>Their local time zone</td>
+<td>Converts times so messages go out at 9 or 10 a.m. <strong>their</strong> time</td>
+</tr>
+<tr>
+<td><code>language</code></td>
+<td><code>en</code></td>
+<td>Their language</td>
+<td>English or Spanish templates; other languages fall back to English, with a note</td>
+</tr>
+<tr>
+<td><code>profile.first_name</code></td>
+<td><code>Taylor</code></td>
+<td>Their first name</td>
+<td>Used in the greeting ("Hi Taylor"). The only personal detail that goes in a message</td>
+</tr>
+<tr>
+<td><code>profile.amenity_interest</code></td>
+<td><code>["pool", "fitness"]</code></td>
+<td>Features they asked about</td>
+<td>Mentioned in the email ("our pool and 24/7 fitness center")</td>
+</tr>
+<tr>
+<td><code>profile.city_interest</code></td>
+<td><code>Richardson, TX</code></td>
+<td>The area they're looking in</td>
+<td>Not used in the message</td>
+</tr>
+</tbody>
+</table></div>
+<h2>4. Rules the message must follow (<code>assertions</code>)</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Example</th>
+<th>Plain meaning</th>
+<th>What the bot does with it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>required_states</code></td>
+<td><code>consent_verified</code>, <code>fair_housing_check_passed</code>, <code>brand_style_applied</code></td>
+<td>Three checks that must have passed before sending</td>
+<td>Checks all three and reports them on every message</td>
+</tr>
+<tr>
+<td><code>constraints.no_pii_leak</code></td>
+<td><code>true</code></td>
+<td>Don't reveal personal data</td>
+<td>Only the first name ever appears; tested with planted data</td>
+</tr>
+<tr>
+<td><code>constraints.no_sensitive_discrimination</code></td>
+<td><code>true</code></td>
+<td>Don't treat people differently by protected traits (fair housing)</td>
+<td>Protected details are never used or mentioned</td>
+</tr>
+<tr>
+<td><code>constraints.include_opt_out_instructions</code></td>
+<td><code>true</code></td>
+<td>Tell them how to stop messages</td>
+<td>Always adds "Reply STOP to opt out." (fixed text, never AI-written)</td>
+</tr>
+<tr>
+<td><code>constraints.primary_cta</code></td>
+<td><code>book_tour</code></td>
+<td><strong>The main thing you want them to do</strong> (see CTA below)</td>
+<td>Chooses the call to action</td>
+</tr>
+</tbody>
+</table></div>
+<h2>5. Targets (<code>thresholds</code>)</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Example</th>
+<th>Plain meaning</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>p95_latency_ms</code></td>
+<td><code>2000</code></td>
+<td>95% of records must be processed within 2 seconds</td>
+<td>Checked in RUN STATS: under 1 ms each</td>
+</tr>
+<tr>
+<td><code>safety_violations_max</code></td>
+<td><code>0</code></td>
+<td>No unsafe messages allowed</td>
+<td>Checked: 0</td>
+</tr>
+<tr>
+<td><code>personalization_score_min</code></td>
+<td><code>0.85</code></td>
+<td>How personal the message must be, scored 0–1</td>
+<td>Not measured: the assignment doesn't say how to score it</td>
+</tr>
+<tr>
+<td><code>reply_classification_f1_min</code></td>
+<td><code>0.9</code></td>
+<td>Accuracy when sorting replies (for example, "1" means Thursday)</td>
+<td>Not measured: there are no replies in the data</td>
+</tr>
+</tbody>
+</table></div>
+<h2>6. The answer key (<code>expected</code>), which is also the bot's output</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Example</th>
+<th>Plain meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>next_message.channel</code></td>
+<td><code>sms</code></td>
+<td>How to reach them</td>
+</tr>
+<tr>
+<td><code>next_message.send_at</code></td>
+<td><code>2025-12-09T09:00:00-06:00</code></td>
+<td>When to send: 9:00 on Dec 9, Chicago time. The <code>-06:00</code> is Chicago's offset from UTC in winter</td>
+</tr>
+<tr>
+<td><code>next_message.subject</code></td>
+<td><code>null</code></td>
+<td>The email subject line. Texts have none, so it's <code>null</code></td>
+</tr>
+<tr>
+<td><code>next_message.body</code></td>
+<td>"Hi Taylor—welcome to Oak Ridge! …"</td>
+<td>The message itself</td>
+</tr>
+<tr>
+<td><code>next_message.cta</code></td>
+<td><code>{"type": "schedule_tour", "options": ["Thu", "Fri"]}</code></td>
+<td><strong>The call to action</strong> (see below)</td>
+</tr>
+<tr>
+<td><code>next_action</code></td>
+<td><code>{"type": "start_cadence", "name": "prospect_welcome_short_horizon"}</code></td>
+<td>What happens <strong>after</strong> this message (see below)</td>
+</tr>
+</tbody>
+</table></div>
+<p>If the bot decides not to send, <code>next_message</code> is <code>null</code> and <code>next_action</code> says why, e.g. <code>{"type": "suppress", "reason": "no channel with consent"}</code>.</p>
+<hr />
+<h2>Terms that come up</h2>
+<p><strong>CTA (call to action):</strong> the one thing the message asks the person to do. In marketing, every message should have one clear CTA.
+- <code>primary_cta: book_tour</code> in the input says what we <em>want</em>: a tour booked.
+- <code>cta</code> in the output says <em>how the message asks for it</em>:
+  - <strong>SMS:</strong> <code>{"type": "schedule_tour", "options": ["Thu", "Fri"]}</code>, with reply options ("Reply 1 for Thu, 2 for Fri").
+  - <strong>Email:</strong> <code>{"type": "schedule_tour", "link": "https://oakridge.example/tour"}</code>, with a link to click.
+- Other CTAs the bot knows: apply now, sign lease, pay rent, pay deposit, renew lease, schedule maintenance. Anything unknown becomes a general "contact us".</p>
+<p><strong>Cadence:</strong> a planned <strong>series of messages</strong> over time, like a drip campaign. <code>start_cadence</code> means "begin the series named …".
+- <code>prospect_welcome_short_horizon</code> is the welcome series for someone moving <strong>soon</strong> (short horizon: about 32 days away in the sample).
+- <code>…_long_horizon</code> is for someone moving <strong>later</strong> (e.g. 68 days away), so the series paces out more slowly.
+- <strong>Horizon</strong> is simply how far away the move-in is.</p>
+<p><strong>Follow-up:</strong> <code>{"type": "follow_up_in_days", "value": 3}</code> means "check back with this person in 3 days". It's used for leads already in progress (<code>open</code>).</p>
+<p><strong>Opt-out:</strong> how someone stops messages. By law, texts must offer "Reply STOP", and marketing emails must include an unsubscribe option.</p>
+<p><strong>Lead:</strong> a potential renter who has shown interest. A <strong>prospect</strong> is a lead.</p>
+<p><strong>UTC and offsets:</strong> <code>Z</code> means UTC (the world reference clock). <code>-06:00</code> means 6 hours behind UTC (Chicago in winter), and <code>-05:00</code> means Chicago in summer or New York in winter.</p>
+<p><strong>Persona vs stage:</strong> persona is <em>who</em> they are (prospect, resident); stage is <em>where</em> they are (new, open, renewal).</p>
+<hr />
+<h2>Fields the bot adds to its output</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>task_id</code></td>
+<td>Copied from the input, so each result can be matched to its record</td>
+</tr>
+<tr>
+<td><code>why</code></td>
+<td>One plain line per decision: consent, channel, send-time arithmetic, wording, guards, brand, next action</td>
+</tr>
+<tr>
+<td><code>meta.record_type</code></td>
+<td><code>outreach</code> (the normal shape), <code>unknown</code> (an unfamiliar shape) or <code>unreadable</code></td>
+</tr>
+<tr>
+<td><code>meta.confidence</code></td>
+<td><code>high</code>, <code>medium</code> (something was assumed or repaired) or <code>low</code> (unfamiliar record shape)</td>
+</tr>
+<tr>
+<td><code>meta.mode</code></td>
+<td><code>template</code> or <code>llm</code>: who wrote the wording</td>
+</tr>
+<tr>
+<td><code>meta.required_states</code></td>
+<td>The three required checks, each <code>true</code> when verified</td>
+</tr>
+<tr>
+<td><code>meta.warnings</code></td>
+<td>Anything repaired, assumed or ignored in the input</td>
+</tr>
+</tbody>
+</table></div>
+<footer>Source: plans/field-guide.md in markfyoung0711/rp. Also versioned at docs/field-guide.html.</footer>
+</div>
