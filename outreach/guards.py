@@ -84,7 +84,8 @@ def brand_for(facts: dict | None) -> dict:
     return brand
 
 
-def check_brand(channel: str, subject: str | None, body: str, facts: dict | None, full_name: str | None) -> list[str]:
+def check_brand(channel: str, subject: str | None, body: str, facts: dict | None, full_name: str | None,
+                lang: str = "en") -> list[str]:
     """Problems with brand style (the samples' `brand_style_applied`). Empty list means the brand was applied."""
     brand = brand_for(facts)
     text = f"{subject or ''} {URL.sub('', body)}"
@@ -97,8 +98,12 @@ def check_brand(channel: str, subject: str | None, body: str, facts: dict | None
         problems.append("emoji not allowed by the brand")
     if text.count("!") > int(brand.get("max_exclamations", 2)):
         problems.append("too many exclamation marks")
-    if channel in ("sms", "voice") and len(body) > int(brand.get("max_sms_chars", 320)):
-        problems.append(f"SMS longer than {brand.get('max_sms_chars', 320)} characters")
+    limit = int(brand.get("max_sms_chars", 320))
+    lang_limit = config.templates().get(lang, {}).get("sms_max_chars")
+    if lang_limit:
+        limit = min(limit, int(lang_limit))     # non-Latin scripts: 70 characters per SMS segment (UCS-2)
+    if channel == "sms" and len(body.replace("\u2066", "").replace("\u2069", "")) > limit:
+        problems.append(f"SMS longer than {limit} characters for this language")
     if not brand.get("shouting_allowed", False):
         shouting = [w for w in CAPS_WORD.findall(text) if w not in CAPS_OK]
         if shouting:

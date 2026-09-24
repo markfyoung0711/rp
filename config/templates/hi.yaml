@@ -1,0 +1,77 @@
+# Hindi message templates. NEEDS NATIVE-SPEAKER AND COMPLIANCE REVIEW before real use.
+language: hi
+name: हिन्दी
+direction: ltr
+sms_max_chars: 210      # Devanagari SMS is billed as UCS-2: 70 characters per segment, so 3 segments
+
+opt_out:
+  sms: "संदेश बंद करने के लिए STOP भेजें।"
+  email: "ईमेल बंद करने के लिए यहाँ क्लिक करें या STOP भेजें।"
+  voice: "ये कॉल बंद करने के लिए 9 दबाएँ या stop कहें।"
+
+days: [सोमवार, मंगलवार, बुधवार, गुरुवार, शुक्रवार, शनिवार, रविवार]
+days_short: [सोमवार, मंगलवार, बुधवार, गुरुवार, शुक्रवार, शनिवार, रविवार]
+months: [जनवरी, फ़रवरी, मार्च, अप्रैल, मई, जून, जुलाई, अगस्त, सितंबर, अक्टूबर, नवंबर, दिसंबर]
+move_timing: {early: "{month} की शुरुआत", mid: "{month} के मध्य", late: "{month} के अंत"}
+article_an_before_vowel: false
+join_or: " या "
+join_and: " और "
+join_subject: " और "
+this_week: "इस हफ़्ते"
+coming_days: "आने वाले दिनों में"
+unknown_property: "हमारी सोसाइटी"
+voice_intro_default: "हम {prop} से बोल रहे हैं"
+
+tour:
+  sms_greeting_new: "में आपका स्वागत है"
+  sms_greeting_other: "में आपकी रुचि के लिए धन्यवाद"
+  sms_slots: "नमस्ते {name}, {prop} {greeting}! {when} टूर उपलब्ध हैं। क्या आप {days} को समय बुक करना चाहेंगे?"
+  sms_code: "{short} के लिए {n}"
+  sms_slots_tail: "जवाब दें: {codes}। {opt_out}"
+  sms_noslot: "नमस्ते {name}, {prop} में आपकी रुचि के लिए धन्यवाद! क्या आप टूर शेड्यूल करना चाहेंगे?"
+  sms_noslot_tail: "हाँ भेजें, हम आपको उपलब्ध समय भेज देंगे। {opt_out}"
+  sms_noslot_option: "हाँ"
+  voice_slots: "नमस्ते {name}, {intro}। {when} टूर उपलब्ध हैं। क्या आप {days} को समय बुक करना चाहेंगे?"
+  voice_key: "{day} के लिए {n} दबाएँ"
+  voice_slots_tail: "कृपया {keys}। {opt_out}"
+  voice_noslot: "नमस्ते {name}, {intro}। क्या आप टूर शेड्यूल करना चाहेंगे?"
+  voice_noslot_tail: "1 दबाएँ, हम उपलब्ध समय के साथ आपको वापस कॉल करेंगे। {opt_out}"
+  email_subject_labels: "{prop} देखें: {labels}"
+  email_subject_label_form: body
+  email_subject_plain: "{prop} का टूर बुक करें"
+  email_move: "चूँकि आप {move} में शिफ़्ट होने की योजना बना रहे हैं, "
+  email_amenities_after_move: "यहाँ हमारे {labels} की एक झलक है।"
+  email_amenities: "यहाँ हमारे {labels} की एक झलक है।"
+  email_move_only: "{prop} देखने का यह सही समय है।"
+  email_fallback: "हमें आपको {prop} दिखाने में खुशी होगी।"
+  email_core: "नमस्ते {name},\n{first} {closer}"
+  email_closer_default: "इसी हफ़्ते विज़िट बुक करें।"
+  use_property_closer: false
+  email_link: "अभी बुक करें → {link}"
+  email_nolink: "विज़िट तय करने के लिए इस ईमेल का जवाब दें।"
+
+general:
+  sms_core: "नमस्ते {name}, {line}"
+  sms_details: "विवरण: {link}"
+  email_core: "नमस्ते {name},\n{Line}"
+  email_action: "आगे बढ़ें → {link}"
+  voice_core: "नमस्ते {name}, {intro}। {Line}"
+  voice_tail: "हमारी टीम से बात करने के लिए 1 दबाएँ। {opt_out}"
+  lines:
+    apply: "{prop} के लिए आपका आवेदन बस कुछ ही मिनटों का है। क्या आप शुरू करना चाहेंगे?"
+    sign_lease: "{prop} के लिए आपकी लीज़ हस्ताक्षर के लिए तैयार है।"
+    payment: "{prop} के लिए आपके भुगतान का एक दोस्ताना अनुस्मारक। आप ऑनलाइन भुगतान कर सकते हैं।"
+    renewal: "हमें खुशी होगी अगर आप {prop} में रहें। आपके नवीनीकरण के विकल्प तैयार हैं।"
+    maintenance: "हम {prop} में आपके रखरखाव अनुरोध को शेड्यूल करने में मदद कर सकते हैं।"
+    general: "हम {prop} के बारे में आपसे संपर्क कर रहे हैं। हम आपकी कैसे मदद कर सकते हैं?"
+  subjects:
+    apply: "{prop} के लिए आपका आवेदन"
+    sign_lease: "आपकी {prop} लीज़ हस्ताक्षर के लिए तैयार है"
+    payment: "{prop} भुगतान अनुस्मारक"
+    renewal: "{prop} में नवीनीकरण के विकल्प"
+    maintenance: "{prop} में आपका रखरखाव अनुरोध"
+    general: "{prop} से फ़ॉलो-अप"
+
+stop_keywords: [रोकें, "बंद करें"]
+protected_terms: [बच्चे, बच्चा, परिवार, धर्म, मंदिर, मस्जिद, चर्च, विकलांग, जाति, नस्ल, राष्ट्रीयता, अप्रवासी, गर्भवती]
+banned_phrases: [सीमित समय, जल्दी करें, आख़िरी मौका, गारंटी]

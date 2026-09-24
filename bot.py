@@ -288,6 +288,9 @@ def main() -> None:
     ap.add_argument("--quiet", action="store_true", help="print only the JSONL block")
     ap.add_argument("--answer-only", action="store_true",
                     help="export only task_id, next_message and next_action (the samples' expected shape); the screen still shows the reasons")
+    ap.add_argument("--fill-expected", action="store_true",
+                    help="export each input record unchanged, with the bot's answer in its `expected` block "
+                         "(an existing `expected` is kept as `expected_original`)")
     ap.add_argument("--pp", action="store_true", help="pretty-print JSON (screen block and -o file), one field per line, for reading and diffing")
     ap.add_argument("--budget", type=float, help="--llm: allow paid calls if the estimated cost is at most this many USD")
     ap.add_argument("--only", help="show only records whose task_id contains this text (for demos)")
@@ -340,7 +343,21 @@ def main() -> None:
         print_stats(results, records, args, wall_s, batch.notes + notes)
 
     # Export without timing, so the same input always produces a byte-identical file.
-    if args.answer_only:
+    if args.answer_only and args.fill_expected:
+        sys.exit("Choose one of --answer-only or --fill-expected.")
+    if args.fill_expected:
+        export = []
+        for rec, r in zip(records, results):
+            answer = {"next_message": r["next_message"], "next_action": r["next_action"]}
+            if isinstance(rec, ReadError):          # can't echo an unreadable record: return its id and answer
+                export.append({"task_id": r["task_id"], "expected": answer})
+                continue
+            filled = {k: v for k, v in rec.items() if k not in ("_ingest", "expected")}
+            if isinstance(rec.get("expected"), dict):
+                filled["expected_original"] = rec["expected"]
+            filled["expected"] = answer
+            export.append(filled)
+    elif args.answer_only:
         export = [{"task_id": r["task_id"], "next_message": r["next_message"], "next_action": r["next_action"]} for r in results]
     else:
         export = [{**r, "meta": {k: v for k, v in r["meta"].items() if k != "latency_ms"}} for r in results]

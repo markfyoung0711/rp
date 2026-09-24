@@ -193,6 +193,10 @@ def validate_template(lang: str, t: dict) -> list[str]:
             except (KeyError, IndexError, ValueError) as e:
                 p.append(f"{where}: {path} has an unknown or broken placeholder ({e})")
     walk({k: v for k, v in t.items() if k not in ("stop_keywords", "protected_terms", "banned_phrases")}, "")
+    if t.get("direction", "ltr") not in ("ltr", "rtl"):
+        p.append(f"{where}: direction must be ltr or rtl")
+    if "sms_max_chars" in t and not _int(t["sms_max_chars"], 60, 1600):
+        p.append(f"{where}: sms_max_chars must be 60-1600")
     for k in ("stop_keywords", "protected_terms", "banned_phrases"):
         if not isinstance(t.get(k, []), list):
             p.append(f"{where}: {k} must be a list")

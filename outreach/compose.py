@@ -227,5 +227,21 @@ def _tour(case, channel, send_at, t, lang, name, prop, facts, link, oo, rule) ->
     return Draft(subject, core, tail, cta, bool(facts))
 
 
-def assemble(channel: str, core: str, tail: str) -> str:
-    return f"{core.rstrip()} {tail}" if channel in ("sms", "voice") else f"{core.rstrip()}\n{tail}"
+LTR_RUN = re.compile(r"https?://\S+|[A-Za-z0-9][A-Za-z0-9 .:/#-]*[A-Za-z0-9]|[A-Za-z0-9]")
+
+
+def bidi_isolate(text: str) -> str:
+    """In right-to-left text, wrap left-to-right runs (links, STOP, digits, Latin names) in Unicode isolates
+    (LRI ... PDI) so they display in the right order and don't scramble the surrounding sentence."""
+    return LTR_RUN.sub(lambda m: "\u2066" + m.group(0) + "\u2069", text)
+
+
+def assemble(channel: str, core: str, tail: str, lang: str = "en") -> str:
+    body = f"{core.rstrip()} {tail}" if channel in ("sms", "voice") else f"{core.rstrip()}\n{tail}"
+    return bidi_isolate(body) if T(lang).get("direction") == "rtl" else body
+
+
+def rendered_opt_out(lang: str, channel: str) -> str:
+    """The opt-out line exactly as it appears in an assembled message."""
+    oo = opt_out(lang, channel)
+    return bidi_isolate(oo) if T(lang).get("direction") == "rtl" else oo

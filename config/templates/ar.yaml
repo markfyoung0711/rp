@@ -1,0 +1,77 @@
+# Arabic (Modern Standard) message templates. NEEDS NATIVE-SPEAKER AND COMPLIANCE REVIEW before real use.
+language: ar
+name: العربية
+direction: rtl          # right-to-left: links, STOP and digits are wrapped so they display correctly
+sms_max_chars: 210      # Arabic SMS is billed as UCS-2: 70 characters per segment, so 3 segments
+
+opt_out:
+  sms: "أرسل STOP لإيقاف الرسائل."
+  email: "لإلغاء الاشتراك في الرسائل الإلكترونية، انقر هنا أو أرسل STOP."
+  voice: "لإيقاف هذه المكالمات، اضغط 9 أو قل stop."
+
+days: [الاثنين, الثلاثاء, الأربعاء, الخميس, الجمعة, السبت, الأحد]
+days_short: [الاثنين, الثلاثاء, الأربعاء, الخميس, الجمعة, السبت, الأحد]
+months: [يناير, فبراير, مارس, أبريل, مايو, يونيو, يوليو, أغسطس, سبتمبر, أكتوبر, نوفمبر, ديسمبر]
+move_timing: {early: "أوائل {month}", mid: "منتصف {month}", late: "أواخر {month}"}
+article_an_before_vowel: false
+join_or: " أو "
+join_and: " و"
+join_subject: " و"
+this_week: "هذا الأسبوع"
+coming_days: "خلال الأيام القادمة"
+unknown_property: "مجتمعنا السكني"
+voice_intro_default: "نتصل بك من {prop}"
+
+tour:
+  sms_greeting_new: "أهلاً بك في"
+  sms_greeting_other: "شكراً لاهتمامك بـ"
+  sms_slots: "مرحباً {name}، {greeting} {prop}! تتوفر جولات {when}. هل تود حجز موعد يوم {days}؟"
+  sms_code: "{n} = {short}"
+  sms_slots_tail: "أرسل {codes}. {opt_out}"
+  sms_noslot: "مرحباً {name}، شكراً لاهتمامك بـ {prop}! هل تود تحديد موعد لجولة؟"
+  sms_noslot_tail: "أرسل نعم وسنرسل لك المواعيد المتاحة. {opt_out}"
+  sms_noslot_option: "نعم"
+  voice_slots: "مرحباً {name}، {intro}. تتوفر جولات {when}. هل تود حجز موعد يوم {days}؟"
+  voice_key: "اضغط {n} ليوم {day}"
+  voice_slots_tail: "من فضلك {keys}. {opt_out}"
+  voice_noslot: "مرحباً {name}، {intro}. هل تود تحديد موعد لجولة؟"
+  voice_noslot_tail: "اضغط 1 وسنعاود الاتصال بك بالمواعيد المتاحة. {opt_out}"
+  email_subject_labels: "زر {prop}: تعرّف على {labels}"
+  email_subject_label_form: body
+  email_subject_plain: "زر {prop}"
+  email_move: "بما أنك تخطط للانتقال في {move}، "
+  email_amenities_after_move: "إليك لمحة سريعة عن {labels}."
+  email_amenities: "إليك لمحة سريعة عن {labels}."
+  email_move_only: "إنه الوقت المناسب لزيارة {prop}."
+  email_fallback: "يسعدنا أن نعرّفك على {prop}."
+  email_core: "مرحباً {name}،\n{first} {closer}"
+  email_closer_default: "احجز زيارتك هذا الأسبوع."
+  use_property_closer: false
+  email_link: "احجز الآن: {link}"
+  email_nolink: "ردّ على هذه الرسالة لترتيب زيارة."
+
+general:
+  sms_core: "مرحباً {name}، {line}"
+  sms_details: "التفاصيل: {link}"
+  email_core: "مرحباً {name}،\n{Line}"
+  email_action: "متابعة: {link}"
+  voice_core: "مرحباً {name}، {intro}. {Line}"
+  voice_tail: "اضغط 1 للتحدث مع فريقنا. {opt_out}"
+  lines:
+    apply: "طلبك في {prop} لا يستغرق سوى بضع دقائق. هل أنت مستعد للبدء؟"
+    sign_lease: "عقد إيجارك في {prop} جاهز للتوقيع."
+    payment: "تذكير ودي بخصوص دفعتك في {prop}. يمكنك الدفع عبر الإنترنت."
+    renewal: "يسعدنا بقاؤك في {prop}. خيارات التجديد جاهزة للمراجعة."
+    maintenance: "يمكننا مساعدتك في جدولة طلب الصيانة في {prop}."
+    general: "نتابع معك بخصوص {prop}. كيف يمكننا مساعدتك؟"
+  subjects:
+    apply: "طلبك في {prop}"
+    sign_lease: "عقد {prop} جاهز للتوقيع"
+    payment: "تذكير بالدفع: {prop}"
+    renewal: "خيارات التجديد في {prop}"
+    maintenance: "طلب الصيانة في {prop}"
+    general: "متابعة من {prop}"
+
+stop_keywords: [إيقاف, توقف, إلغاء, الغاء]
+protected_terms: [أطفال, طفل, عائلة, دين, مسجد, كنيسة, إعاقة, عرق, جنسية, مهاجر, حامل]
+banned_phrases: [عرض لفترة محدودة, سارع, فرصة أخيرة, مضمون]

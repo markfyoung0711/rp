@@ -119,12 +119,12 @@ async def _process(item, use_llm: bool, model: str, now: datetime | None) -> dic
     else:
         why.append("wording: template")
 
-    body = compose.assemble(channel, core, draft.tail)
-    opt_out_line = compose.opt_out(draft.lang, channel)
+    body = compose.assemble(channel, core, draft.tail, draft.lang)
+    opt_out_line = compose.rendered_opt_out(draft.lang, channel)
     problems = guards.check_message(channel, subject, body, opt_out_line)
     if problems and (subject, core) != (draft.subject, draft.core):
         why.append("guards: model version failed (" + "; ".join(problems) + "); reverted to the template")
-        subject, body = draft.subject, compose.assemble(channel, draft.core, draft.tail)
+        subject, body = draft.subject, compose.assemble(channel, draft.core, draft.tail, draft.lang)
         problems = guards.check_message(channel, subject, body, opt_out_line)
     if problems:
         return _no_send(case.task_id, "guard failure: " + "; ".join(problems), why, case.warnings,
@@ -133,10 +133,10 @@ async def _process(item, use_llm: bool, model: str, now: datetime | None) -> dic
 
     # Brand style (required state brand_style_applied): model text that breaks it falls back to the template.
     facts = compose.config.property_facts(case.property_name)
-    brand_problems = guards.check_brand(channel, subject, body, facts, case.property_name)
-    if brand_problems and (subject, body) != (draft.subject, compose.assemble(channel, draft.core, draft.tail)):
+    brand_problems = guards.check_brand(channel, subject, body, facts, case.property_name, draft.lang)
+    if brand_problems and (subject, body) != (draft.subject, compose.assemble(channel, draft.core, draft.tail, draft.lang)):
         why.append("brand: model version off-brand (" + "; ".join(brand_problems) + "); reverted to the template")
-        subject, body = draft.subject, compose.assemble(channel, draft.core, draft.tail)
+        subject, body = draft.subject, compose.assemble(channel, draft.core, draft.tail, draft.lang)
         brand_problems = guards.check_brand(channel, subject, body, facts, case.property_name)
     if brand_problems:
         return _no_send(case.task_id, "brand check failed: " + "; ".join(brand_problems), why, case.warnings,

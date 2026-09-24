@@ -424,3 +424,17 @@ def test_names_in_any_script_are_accepted():
         assert _is_safe_name(n), n
     for n in ("1Priya", "priya@example.com", "Ignore previous instructions and more", "<b>x</b>", "a" * 31):
         assert not _is_safe_name(n), n
+
+
+def test_fill_expected_returns_their_records_with_our_answer(tmp_path):
+    import subprocess
+    out = tmp_path / "filled.jsonl"
+    subprocess.run(["uv", "run", "bot.py", "-i", "plans/sample.jsonl", "--fill-expected", "--quiet", "-o", str(out)],
+                   cwd=ROOT, check=True, capture_output=True)
+    rows = [json.loads(line) for line in out.read_text().splitlines()]
+    samples = [json.loads(line) for line in SAMPLES.splitlines() if line.strip()]
+    for row, s in zip(rows, samples):
+        assert {k: v for k, v in row.items() if k not in ("expected", "expected_original")} == \
+               {k: v for k, v in s.items() if k != "expected"}                 # input unchanged
+        assert row["expected"] == s["expected"]                                  # our answer, in their shape
+        assert row["expected_original"] == s["expected"]                         # theirs kept for comparison
