@@ -4,6 +4,7 @@
   uv run learn.py plans/sample.jsonl --write            # save as config/learned.yaml (the bot uses it)
   uv run learn.py plans/sample.jsonl --eval             # leave-one-out: learn from the others, predict each one
   uv run learn.py plans/sample.jsonl tests/labelled_extra.jsonl   # more examples -> the rules change
+Refuses any file whose path contains "hold" (hold-out data is for testing, never learning).
 """
 import argparse
 import asyncio
@@ -19,6 +20,25 @@ from outreach.pipeline import process
 from outreach.reader import UnsupportedInput, decode_bytes, read_batch
 
 CONTROLLABLE = ("channel", "send_at", "cta")
+
+
+def refuse_holdout(paths: list[str]) -> None:
+    """Never learn from hold-out data: that would be training on the test set. Any path containing "hold" is refused."""
+    held = [p for p in paths if "hold" in str(Path(p)).lower()]
+    if held:
+        bar = "=" * 78
+        print(f"""{bar}
+STOPPED: refusing to learn from hold-out data.
+
+  File(s):   {", ".join(held)}
+  Reason:    the name contains "hold". A hold-out set is kept back to test how the bot
+             handles records it has never seen. Learning from it would be training on
+             the test set and would make its score meaningless.
+
+Nothing was learned and config/learned.yaml was not changed.
+Score hold-out records instead:  uv run bot.py -i <file> --compare
+{bar}""", file=sys.stderr)
+        sys.exit(4)
 
 
 def load(paths: list[str]) -> list[dict]:
@@ -76,6 +96,7 @@ def main() -> None:
     ap.add_argument("--eval", action="store_true", help="leave-one-out evaluation (neutral rules + what the others teach)")
     args = ap.parse_args()
 
+    refuse_holdout(args.files)
     recs = [r for r in load(args.files) if isinstance(r.get("expected"), dict)]
     if not recs:
         sys.exit("No labelled records (with an `expected` block) found.")

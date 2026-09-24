@@ -80,6 +80,7 @@ To prove, run: `uv run learn.py plans/sample.jsonl tests/labelled_extra.jsonl --
 
 **Q: What's a hold-out set, and did you train on it?**
 A: "Test data kept hidden until the end, to check the system generalizes. No, I won't learn from your 12. That would be training on the test set, which makes the score meaningless."
+To prove, run: `cp plans/sample.jsonl /tmp/holdout.jsonl && uv run learn.py /tmp/holdout.jsonl` (it refuses any file with "hold" in its name)
 
 **Q: What's overfitting here?**
 A: "Rules that fit two examples perfectly but break on new ones. That's why every learned rule shows how many examples back it, the defaults are configurable, and I tested 16 made-up edge cases, plus a blind run on records it had never seen."

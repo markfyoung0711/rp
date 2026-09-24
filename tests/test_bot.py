@@ -221,3 +221,12 @@ def test_learning_rejects_poisoned_or_malformed_labels():
         assert any(e.startswith("rejected") for e in evidence) and any(e.startswith("not learned") for e in evidence)
     finally:
         config.use_rules("hand", None)
+
+
+def test_learning_refuses_holdout_files(tmp_path):
+    import subprocess
+    f = tmp_path / "Holdout_12.jsonl"
+    f.write_text(SAMPLES)
+    r = subprocess.run(["uv", "run", "learn.py", str(f), "--write"], cwd=ROOT, capture_output=True, text=True)
+    assert r.returncode == 4 and "refusing to learn from hold-out data" in r.stderr
+    assert "Holdout" not in (ROOT / "config" / "learned.yaml").read_text()

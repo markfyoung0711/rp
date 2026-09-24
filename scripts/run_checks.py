@@ -139,6 +139,12 @@ def main(full: bool) -> int:
     check("P0", "learn.py: extra examples change the rules; leave-one-out predicts both samples",
           lg.returncode == 0 and "50 → 36" in lg.stdout and "2/4 predicted correctly" in lg.stdout, lg.stdout[-300:])
 
+    with tempfile.TemporaryDirectory() as d:
+        hf = Path(d, "holdout.jsonl")
+        hf.write_text(SAMPLES.read_text())
+        lh = sh("uv", "run", "learn.py", str(hf))
+        check("P0", "learn.py refuses hold-out files (exit 4)", lh.returncode == 4 and "hold-out" in lh.stderr, lh.stderr[-200:])
+
     # D. Static
     check("P0", "pytest", sh("uv", "run", "pytest", "-q").returncode == 0)
     ruff = sh("uv", "run", "ruff", "check", "outreach", "bot.py", "tests", "--select", "E9,F")
