@@ -250,3 +250,23 @@ def test_brand_style_is_checked_and_required_states_reported():
     for out in run(SAMPLES):
         assert out["meta"]["required_states"] == {"consent_verified": True, "fair_housing_check_passed": True,
                                                   "brand_style_applied": True}
+
+
+def test_pp_prints_readable_json_that_reads_back():
+    import subprocess
+    r = subprocess.run(["uv", "run", "bot.py", "-i", "plans/sample.jsonl", "--pp", "--quiet"], cwd=ROOT,
+                       capture_output=True, text=True)
+    block = r.stdout.split("=== BEGIN OUTPUT ===")[1].split("=== END OUTPUT ===")[0]
+    assert '\n  "task_id"' in block                      # indented
+    assert len(read_records(block)) == 2                   # still machine-readable (pretty-printed JSON)
+
+
+def test_pp_file_diffs_field_by_field(tmp_path):
+    import subprocess
+    a, b = tmp_path / "a.json", tmp_path / "b.json"
+    for f in (a, b):
+        subprocess.run(["uv", "run", "bot.py", "-i", "plans/sample.jsonl", "--pp", "--quiet", "-o", str(f)], cwd=ROOT, check=True,
+                       capture_output=True)
+    assert a.read_bytes() == b.read_bytes()                # deterministic
+    assert a.read_text().count("\n") > 40                  # one field per line
+    assert len(read_records(a.read_text())) == 2           # reads back

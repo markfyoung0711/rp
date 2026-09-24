@@ -279,6 +279,7 @@ def main() -> None:
     ap.add_argument("--now", help="reference time, ISO 8601; sends never land before it")
     ap.add_argument("--compare", action="store_true", help="compare with each record's expected block, if present")
     ap.add_argument("--quiet", action="store_true", help="print only the JSONL block")
+    ap.add_argument("--pp", action="store_true", help="pretty-print JSON (screen block and -o file), one field per line, for reading and diffing")
     ap.add_argument("--budget", type=float, help="--llm: allow paid calls if the estimated cost is at most this many USD")
     ap.add_argument("--only", help="show only records whose task_id contains this text (for demos)")
     args = ap.parse_args()
@@ -330,7 +331,10 @@ def main() -> None:
 
     # Export without timing, so the same input always produces a byte-identical file.
     export = [{**r, "meta": {k: v for k, v in r["meta"].items() if k != "latency_ms"}} for r in results]
-    lines = [json.dumps(r, ensure_ascii=False) for r in export]
+    if args.pp:
+        lines = [json.dumps(r, ensure_ascii=False, indent=2) for r in export]
+    else:
+        lines = [json.dumps(r, ensure_ascii=False) for r in export]
     if args.output:
         out = Path(args.output)
         out.parent.mkdir(parents=True, exist_ok=True)

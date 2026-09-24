@@ -145,6 +145,10 @@ A: "The model only writes the friendly sentence, from facts I give it. It never 
 A: "Record fields are treated as data, never instructions. Only allow-listed fields reach the prompt, suspicious names become 'there', and the output is checked. A test plants 'ignore previous instructions' in the name field and it's never followed or repeated."
 To prove, run: `uv run bot.py -i tests/edge_cases.jsonl --only injection`
 
+**Q: How would you see what changed between two versions of the rules?**
+A: "Pretty-print both runs and diff them. Each field sits on its own line, so the diff shows exactly which decision changed and why."
+To prove, run: `BOT_RULES=hand uv run bot.py -i plans/sample.jsonl --pp --quiet -o out/hand.json; uv run bot.py -i plans/sample.jsonl --pp --quiet -o out/learned.json; diff out/hand.json out/learned.json`
+
 **Q: Is the output deterministic?**
 A: "Template mode is byte-identical every run. In `--llm` mode, answers are cached, so a re-run is identical too."
 
