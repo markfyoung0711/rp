@@ -438,3 +438,33 @@ def test_fill_expected_returns_their_records_with_our_answer(tmp_path):
                {k: v for k, v in s.items() if k != "expected"}                 # input unchanged
         assert row["expected"] == s["expected"]                                  # our answer, in their shape
         assert row["expected_original"] == s["expected"]                         # theirs kept for comparison
+
+
+def test_arabic_and_hindi_messages_are_compliant_and_rtl_safe():
+    from outreach import guards
+    from outreach.compose import bidi_isolate, rendered_opt_out
+    for lang, greeting in (("ar", "مرحباً"), ("hi", "नमस्ते")):
+        for idx in (0, 1):
+            out = run(json.dumps(_rec(lang, "Noor Gardens Apartments", idx)))[0]
+            msg = out["next_message"]
+            assert msg and out["meta"]["required_states"]["brand_style_applied"], (lang, idx)
+            assert rendered_opt_out(lang, msg["channel"]) in msg["body"]                # opt-out as rendered
+            assert "STOP" in msg["body"]                                                # carriers need English STOP
+            if msg["channel"] == "sms":
+                assert len(msg["body"].replace("⁦", "").replace("⁩", "")) <= 210
+        assert greeting in run(json.dumps(_rec(lang, "Noor Gardens Apartments")))[0]["next_message"]["body"] or lang == "hi"
+    # Arabic wraps left-to-right runs in isolates; Hindi (left-to-right) is untouched
+    ar = run(json.dumps(_rec("ar", "Noor Gardens Apartments")))[0]["next_message"]["body"]
+    assert "⁦STOP⁩" in ar
+    assert "⁦" not in run(json.dumps(_rec("hi", "Noor Gardens Apartments")))[0]["next_message"]["body"]
+    assert bidi_isolate("زر https://x.io/a الآن") == "زر ⁦https://x.io/a⁩ الآن"
+    # local stop words opt out; local protected terms and banned phrases are caught
+    for lang, reply in (("ar", "إيقاف من فضلك"), ("hi", "कृपया बंद करें")):
+        r = _rec(lang, "Noor Gardens Apartments")
+        r["input"]["last_message"] = reply
+        assert run(json.dumps(r))[0]["next_message"] is None, lang
+    assert guards.protected_hits("مناسب لعائلة مع أطفال") and guards.protected_hits("मंदिर के पास")
+    assert any("off-brand" in p for p in guards.check_brand("sms", None, "سارع! فرصة أخيرة", None, None, "ar"))
+    # the 210-character UCS-2 limit applies, isolates not counted
+    assert any("210" in p for p in guards.check_brand("sms", None, "ب" * 211, None, None, "ar"))
+    assert not any("210" in p for p in guards.check_brand("sms", None, "ب" * 200 + "⁦" * 20, None, None, "ar"))

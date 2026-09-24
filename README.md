@@ -11,6 +11,7 @@ uv sync                                                    # install (once)
 uv run bot.py -i plans/sample.jsonl --compare              # the two samples, compared field by field
 uv run bot.py -i tests/edge_cases.jsonl                    # 16 unseen-style cases (Levels 1-3)
 uv run bot.py -i holdout.jsonl -o out/holdout.jsonl --answer-only   # hold-out -> answers in the expected shape
+uv run bot.py -i holdout.jsonl -o out/filled.jsonl --fill-expected  # their records back, our answer in `expected`
 uv run bot.py --paste -o out/holdout.jsonl                 # paste records, then Ctrl+D
 uv run learn.py plans/sample.jsonl --eval                  # learn the rules from labelled examples; leave-one-out test
 uv run python scripts/decision_table.py                     # all 120 consent × preference cases vs the policy
@@ -76,7 +77,7 @@ These were inferred from two samples and stated rather than hidden. The details 
 - **Property facts** (tour days, amenities, links) come from `config/properties.yaml`. For an unknown property the message makes no specific claims.
 - **Horizon threshold:** 50 days to move-in, learned from the samples (32 days → short, 68 days → long; the true cut-off lies in 32–67). The hand-written default is 45.
 - **No-send shape:** as above. The assignment doesn't define one.
-- **Languages:** every word the bot writes lives in `config/templates/<lang>.yaml` (English, Spanish, French), including that language's STOP keywords, fair-housing terms and banned phrases. **Adding a language means adding a file; the validator checks it's complete.** Each property can declare `languages` and a `default_language` in `properties.yaml`. The recipient's language is used if the property offers it, otherwise the property's default.
+- **Languages:** every word the bot writes lives in `config/templates/<lang>.yaml` (English, Spanish, French; Arabic and Hindi drafts that need native review), including that language's STOP keywords, fair-housing terms and banned phrases. **Adding a language means adding a file; the validator checks it's complete.** Each property can declare `languages` and a `default_language` in `properties.yaml`. The recipient's language is used if the property offers it, otherwise the property's default. A template can set `direction: rtl` (Arabic: links, STOP and digits are wrapped in Unicode isolates so they display in order) and `sms_max_chars` (210 for non-Latin scripts, billed at 70 characters per segment). Every language keeps the English STOP keyword alongside its own.
 - **Brand style** isn't defined by the assignment. It's implemented as a per-property brand profile (`config/properties.yaml`, defaults in `config/rules.yaml`) plus a check on every message.
 - **Consent:** only an explicit opt-in counts; missing or unclear consent means no send.
 - **Voice:** the samples never show a voice answer, so its shape is inferred from SMS: `channel: "voice"`, no subject, a short call script with keypad options (`cta.options`) and a spoken opt-out ("press 9 or say stop"), sent at 10:00 local. The caller identifies itself with the brand's `voice_intro`. Automated calls have stricter consent rules (TCPA), so voice consent is required, as for every channel.

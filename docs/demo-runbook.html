@@ -176,7 +176,26 @@ footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);color:v
       <div><h4>They send a file</h4><p class="show">Save it with “holdout” in the name (it also blocks learning from it):</p><div class="cmd"><pre>uv run bot.py -i holdout.jsonl -o out/holdout.jsonl --answer-only --compare</pre><button type="button" data-copy>Copy</button></div></div>
       <div><h4>They paste text</h4><p class="show">Paste, then <code>Ctrl+D</code>. JSONL, a JSON list or chat-style text all work.</p><div class="cmd"><pre>uv run bot.py --paste -o out/holdout.jsonl --answer-only --compare</pre><button type="button" data-copy>Copy</button></div></div>
     </div>
-    <p class="show"><b>Hand over:</b> <code>out/holdout.jsonl</code>, or copy the block between <code>=== BEGIN OUTPUT ===</code> and <code>=== END OUTPUT ===</code>. <code>--answer-only</code> makes that exactly their <code>expected</code> shape: <code>task_id</code>, <code>next_message</code>, <code>next_action</code>, one line per record. The screen still shows every reason and RUN STATS to talk through. If their records include <code>expected</code>, <code>--compare</code> gives a live score per field.</p>
+    <p class="show"><b>Hand over:</b> <code>out/holdout.jsonl</code>, or copy the block between <code>=== BEGIN OUTPUT ===</code> and <code>=== END OUTPUT ===</code>. <code>--answer-only</code> makes that exactly their <code>expected</code> shape: <code>task_id</code>, <code>next_message</code>, <code>next_action</code>, one line per record. The screen still shows every reason and RUN STATS to talk through. If their records include <code>expected</code>, <code>--compare</code> gives a live score per field. If they want their own file back with answers filled in, use <code>--fill-expected</code> instead (their <code>expected</code> is kept as <code>expected_original</code>).</p>
+    <h4>Commands for each option</h4>
+    <p class="show"><b>If they want a match to their expected format (answers only, one line per record) ...</b></p>
+    <div class="cmd"><pre>uv run bot.py -i holdout.jsonl -o out/holdout.jsonl --answer-only --compare</pre><button type="button" data-copy>Copy</button></div>
+    <p class="show"><b>If they want their own input file back, with our answer filled in as <code>expected</code> ...</b></p>
+    <div class="cmd"><pre>uv run bot.py -i holdout.jsonl -o out/holdout_filled.jsonl --fill-expected --compare</pre><button type="button" data-copy>Copy</button></div>
+    <p class="show"><b>If they want the full output, with the reasons (<code>why</code>) and <code>meta</code> ...</b></p>
+    <div class="cmd"><pre>uv run bot.py -i holdout.jsonl -o out/holdout_full.jsonl --compare</pre><button type="button" data-copy>Copy</button></div>
+    <p class="show"><b>If they want it easy to read, one field per line ...</b></p>
+    <div class="cmd"><pre>uv run bot.py -i holdout.jsonl -o out/holdout_pretty.json --answer-only --pp</pre><button type="button" data-copy>Copy</button></div>
+    <p class="show"><b>If they want only the JSON on screen, to copy and paste ...</b></p>
+    <div class="cmd"><pre>uv run bot.py -i holdout.jsonl --answer-only --quiet</pre><button type="button" data-copy>Copy</button></div>
+    <p class="show"><b>If they ask about one record (put part of its task_id after --only) ...</b></p>
+    <div class="cmd"><pre>uv run bot.py -i holdout.jsonl --only TASK_ID_TEXT</pre><button type="button" data-copy>Copy</button></div>
+    <p class="show"><b>If they paste the records instead of sending a file (paste, then Ctrl+D) ...</b></p>
+    <div class="cmd"><pre>uv run bot.py --paste -o out/holdout.jsonl --answer-only --compare</pre><button type="button" data-copy>Copy</button></div>
+    <p class="show"><b>If they give a reference “now” time, so no send lands before it ...</b></p>
+    <div class="cmd"><pre>uv run bot.py -i holdout.jsonl -o out/holdout.jsonl --answer-only --now 2025-12-08T12:00:00-06:00</pre><button type="button" data-copy>Copy</button></div>
+    <p class="show"><b>If they want AI wording (paid, about $0.004; only with your OK, capped at 5 cents) ...</b></p>
+    <div class="cmd"><pre>uv run bot.py -i holdout.jsonl -o out/holdout_llm.jsonl --answer-only --llm --budget 0.05</pre><button type="button" data-copy>Copy</button></div>
     <div class="say"><div class="tag">Say</div><p>“Twelve unseen records, one decision each, exported in the same shape as your expected answers. The reasons are on screen if you want to go through any of them. Nothing was tuned to these; it never learns from a hold-out.”</p></div>
   </div></li>
 
@@ -234,7 +253,7 @@ footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);color:v
   <li><b>Next action:</b> a new lead starts a welcome sequence, short if the move-in is within <b>50 days</b> (learned from the samples: 32 was short, 68 was long) and long otherwise; anyone else gets a follow-up in 3 days.</li>
   <li><b>Property details</b> (tour days, amenities, links) come from one config file, never invented. An unknown property gets a generic message, the default brand, and a flagged configuration gap.</li>
   <li><b>Brand style</b> isn’t defined in the spec, so I modelled it as a per-property brand profile with a check on every message.</li>
-  <li><b>Language:</b> the recipient’s, if the property offers it; otherwise the property’s default. English, Spanish and French templates exist.</li>
+  <li><b>Language:</b> the recipient’s, if the property offers it; otherwise the property’s default. English, Spanish and French templates exist; Arabic (right-to-left) and Hindi are drafts flagged for native-speaker review. SMS in those scripts is limited to 210 characters, and English STOP always works.</li>
   <li><b>No-send shape</b> (<code>next_message: null</code> plus a reason) is my choice; the spec doesn’t define one.</li>
   <li><b>Personal data:</b> only the first name, in the greeting. <code>task_id</code> is the only join key; identity belongs to the system of record.</li>
 </ol>

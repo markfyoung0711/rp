@@ -185,7 +185,7 @@ plans/                  spec, design, decision register, reviews</pre>
 <tr><td>Environment settings</td><td><code>BOT_RULES=hand</code> (ignore learned rules), <code>BOT_LLM_BUDGET_USD</code> / <code>BOT_ALLOW_API_COST</code> (AI spend), <code>BOT_LLM_CONCURRENCY</code></td><td>Whoever runs the bot</td></tr>
 </tbody></table></div>
 <p style="margin-top:12px"><b>Override order:</b> <code>rules.yaml</code> defaults → <code>learned.yaml</code> → a property’s own <code>brand</code> block (for branding). Legal limits can only be narrowed: send hours must stay inside 8:00–21:00, and STOP must always work.</p>
-<p><b>Language choice:</b> the recipient’s language if the property offers it, otherwise the property’s default. A locale like <code>es-MX</code> counts as <code>es</code>.</p>
+<p><b>Language choice:</b> the recipient’s language if the property offers it, otherwise the property’s default. A locale like <code>es-MX</code> counts as <code>es</code>. Right-to-left languages (Arabic) set <code>direction: rtl</code>, and links, STOP and numbers are isolated so they display in order; non-Latin scripts set <code>sms_max_chars</code> (210).</p>
 <p><b>Validate after any change:</b></p>
 <pre>uv run python scripts/validate_rules.py --brand</pre>
 <p>This checks every file (types, ranges, legal window, STOP, what may reach the AI prompt, time zones, links, brand settings, and that every language file is complete with valid placeholders and opt-outs), then renders a tour message for every property on SMS, email and voice and brand-checks each one. If anything is invalid, the bot and <code>learn.py</code> refuse to run and list the problems.</p>

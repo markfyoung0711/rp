@@ -41,7 +41,7 @@ The bot reads the first two parts and produces its own version of the third. The
 | `move_date_target` | `2026-01-10` | When they want to move in | Measures **days to move-in**: under 50 → a short sequence, over → a long one. Emails mention it ("mid-January move") |
 | `last_interaction` | `2025-12-08T15:04:00Z` | When they last got in touch, in UTC (the "Z") | The starting point for the send time |
 | `timezone` | `America/Chicago` | Their local time zone | Converts times so messages go out at 9 or 10 a.m. **their** time |
-| `language` | `en` | Their language (a locale like `es-MX` counts as `es`) | Picks the message templates in `config/templates/<lang>.yaml` (English, Spanish and French today), if the property offers that language; otherwise the property's `default_language`, with a note. Spanish opt-out replies (ALTO, BAJA, PARAR, CANCELAR, NO MÁS) stop messages, and Spanish fair-housing terms and banned sales phrases are checked too |
+| `language` | `en` | Their language (a locale like `es-MX` counts as `es`) | Picks the message templates in `config/templates/<lang>.yaml` (English, Spanish and French today; Arabic and Hindi drafts need native review), if the property offers that language; otherwise the property's `default_language`, with a note. Spanish opt-out replies (ALTO, BAJA, PARAR, CANCELAR, NO MÁS) stop messages, and Spanish fair-housing terms and banned sales phrases are checked too |
 | `profile.first_name` | `Taylor` | Their first name | Used in the greeting ("Hi Taylor"). The only personal detail that goes in a message |
 | `profile.amenity_interest` | `["pool", "fitness"]` | Features they asked about | Mentioned in the email ("our pool and 24/7 fitness center") |
 | `profile.city_interest` | `Richardson, TX` | The area they're looking in | Not used in the message |
@@ -120,4 +120,6 @@ If the bot decides not to send, `next_message` is `null` and `next_action` says 
 | `meta.gaps` | Machine-readable configuration gaps, only when present. For example `{"code": "property_facts_missing", "property": "Maple Court"}`: the property has no facts file, so the message is generic and uses the default brand. RUN STATS lists them under **Config gaps** |
 
 **For the hold-out hand-over,** `--answer-only` leaves out `why` and `meta`. Each line is then exactly the samples' `expected` shape: `task_id`, `next_message`, `next_action`. The reasons still show on screen.
+
+**To return their own file filled in,** `--fill-expected` writes each input record back unchanged with our answer in `expected`; any `expected` they supplied is kept as `expected_original` for side-by-side comparison.
 

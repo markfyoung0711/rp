@@ -3,6 +3,7 @@
 No model is involved here. These are the compliance-critical choices, so they are plain code.
 """
 import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 
@@ -19,16 +20,21 @@ class Decision:
     suppress_reason: str | None = None
 
 
+def _wordish(c: str) -> bool:
+    return bool(c) and (c.isalnum() or c == "_" or unicodedata.category(c).startswith("M"))
+
+
 def stop_gate(case: Case, why: list) -> str | None:
     """Opt-out wins before anything else, and before any model call."""
     if case.opted_out:
         return f"opted out ({case.opted_out})"
     if case.inbound_text:
         words = config.rules()["stop_keywords"]
-        pattern = r"\b(" + "|".join(re.escape(w) for w in words) + r")\b"
-        m = re.search(pattern, case.inbound_text.upper())
-        if m:
-            return f"inbound message contains opt-out keyword {m.group(1)!r}"
+        text = case.inbound_text.upper()
+        for m in re.finditer("|".join(re.escape(w) for w in sorted(words, key=len, reverse=True)), text):
+            # a whole word only; \b can't be used: it treats combining marks (Hindi vowel signs) as non-word
+            if not _wordish(text[m.start() - 1: m.start()]) and not _wordish(text[m.end(): m.end() + 1]):
+                return f"inbound message contains opt-out keyword {m.group(0)!r}"
     why.append("stop check: no opt-out signal")
     return None
 
