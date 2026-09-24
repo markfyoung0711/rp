@@ -109,5 +109,10 @@ def next_action(case: Case, purpose: str, send_at: datetime | None, why: list) -
         why.append(f"next action: new lead -> start cadence {name} ({basis})")
         return {"type": "start_cadence", "name": name}
     days = rules["follow_up_days"]
-    why.append(f"next action: stage {case.stage!r} is not new -> follow up in {days} days")
+    basis = ""
+    facts = config.property_facts(case.property_name) or {}
+    if facts.get("follow_up_days_without_dayN") is not None and not re.search(r"day[_-]?\d+", case.task_id, re.IGNORECASE):
+        days = facts["follow_up_days_without_dayN"]
+        basis = " (property setting: no dayN in task_id)"
+    why.append(f"next action: stage {case.stage!r} is not new -> follow up in {days} days{basis}")
     return {"type": "follow_up_in_days", "value": days}

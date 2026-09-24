@@ -220,6 +220,9 @@ def validate_properties(props: dict, languages: set | None = None) -> list[str]:
         days = f.get("tour_days", [])
         if not isinstance(days, list) or not set(days) <= DAYS:
             p.append(f"properties.{name}.tour_days: must be a list of {sorted(DAYS)}")
+        fu = f.get("follow_up_days_without_dayN")
+        if fu is not None and not _int(fu, 1, 60):
+            p.append(f"properties.{name}.follow_up_days_without_dayN: {fu!r} must be a whole number of days 1-60")
         for k, v in f.items():
             if k.endswith("_link") and not (isinstance(v, str) and v.startswith("https://")):
                 p.append(f"properties.{name}.{k}: links must start with https://")
