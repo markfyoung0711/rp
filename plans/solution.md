@@ -978,15 +978,15 @@ This records how the work departs from, or adds to, the **original assignment** 
 
 | # | Title | Labels | State |
 |---|---|---|---|
-| [#1](https://github.com/markfyoung0711/rp/issues/1) | a) Intake plan: collect assignment inputs | documentation | open |
-| [#2](https://github.com/markfyoung0711/rp/issues/2) | b) Understand plan: decisions, fields, implied rules | documentation | open |
+| [#1](https://github.com/markfyoung0711/rp/issues/1) | a) Intake plan: collect assignment inputs | documentation | closed |
+| [#2](https://github.com/markfyoung0711/rp/issues/2) | b) Understand plan: decisions, fields, implied rules | documentation | closed |
 | [#3](https://github.com/markfyoung0711/rp/issues/3) | c) Prior-art search + competitive intel: RealPage/peers — legal risk, practices to avoid, renter/customer pain points | documentation, priority: first | open |
-| [#4](https://github.com/markfyoung0711/rp/issues/4) | d) Define detailed spec (schemas, rules, scoring) | documentation | open |
+| [#4](https://github.com/markfyoung0711/rp/issues/4) | d) Define detailed spec (schemas, rules, scoring) | documentation | closed |
 | [#5](https://github.com/markfyoung0711/rp/issues/5) | e) Imagine adjacent agents; add-on tests tracked vs original requirements | enhancement | open |
 | [#6](https://github.com/markfyoung0711/rp/issues/6) | f) Design session with engineer: alternatives to co-implement and compare | question | open |
 | [#7](https://github.com/markfyoung0711/rp/issues/7) | g) UX design: renter, customer support, and customer (owner) views — cooperating and visible simultaneously for demo | enhancement | open |
 | [#8](https://github.com/markfyoung0711/rp/issues/8) | h) Demo data: seed sample actors + create new actors live during the demo | enhancement | open |
-| [#9](https://github.com/markfyoung0711/rp/issues/9) | i) FIRST: independent critical review of the spec + prior-art research | documentation, priority: first | open |
+| [#9](https://github.com/markfyoung0711/rp/issues/9) | i) FIRST: independent critical review of the spec + prior-art research | documentation, priority: first | closed |
 | [#10](https://github.com/markfyoung0711/rp/issues/10) | j) External review sentiment: pull Yelp/Google/other review-site data per property via API | enhancement | open |
 
 **Order:** [#9](https://github.com/markfyoung0711/rp/issues/9) and [#3](https://github.com/markfyoung0711/rp/issues/3) first (review and prior art) → [#1](https://github.com/markfyoung0711/rp/issues/1), [#2](https://github.com/markfyoung0711/rp/issues/2) → [#4](https://github.com/markfyoung0711/rp/issues/4) → [#5](https://github.com/markfyoung0711/rp/issues/5), [#7](https://github.com/markfyoung0711/rp/issues/7), [#8](https://github.com/markfyoung0711/rp/issues/8), [#10](https://github.com/markfyoung0711/rp/issues/10) → [#6](https://github.com/markfyoung0711/rp/issues/6).
