@@ -468,3 +468,64 @@ def test_arabic_and_hindi_messages_are_compliant_and_rtl_safe():
     # the 210-character UCS-2 limit applies, isolates not counted
     assert any("210" in p for p in guards.check_brand("sms", None, "ب" * 211, None, None, "ar"))
     assert not any("210" in p for p in guards.check_brand("sms", None, "ب" * 200 + "⁦" * 20, None, None, "ar"))
+
+
+def _sample0(**inp):
+    r = json.loads(SAMPLES.splitlines()[0])
+    r.pop("expected")
+    r["input"].update(inp)
+    return r
+
+
+def _one(rec, **kw):
+    return run(json.dumps(rec), **kw)[0]
+
+
+def test_send_time_follows_daylight_saving_changes():
+    # Saturday afternoon contact, day0 -> Sunday 09:00 local, on the far side of each clock change
+    spring = _one(_sample0(last_interaction="2026-03-07T21:00:00Z"))["next_message"]["send_at"]
+    fall = _one(_sample0(last_interaction="2026-10-31T21:00:00Z"))["next_message"]["send_at"]
+    assert spring == "2026-03-08T09:00:00-05:00"          # CDT begins Mar 8
+    assert fall == "2026-11-01T09:00:00-06:00"            # CST resumes Nov 1
+
+
+def test_horizon_threshold_edge_is_inclusive():
+    # the sample's send date is Dec 9, 2025; threshold 50 (learned) -> 50 days is short, 51 is long
+    from outreach import config
+    assert config.rules()["next_action"]["horizon_threshold_days"] == 50
+    short = _one(_sample0(move_date_target="2026-01-28"))["next_action"]["name"]
+    long_ = _one(_sample0(move_date_target="2026-01-29"))["next_action"]["name"]
+    assert short.endswith("short_horizon") and long_.endswith("long_horizon")
+
+
+@pytest.mark.parametrize("reply,opted_out", [
+    ("Stopping by tomorrow at 3", False),       # STOP inside a longer word is not an opt-out
+    ("Can we meet at the bus stop?", True),     # a whole-word STOP always wins (TCPA, safe side)
+    ("stop", True), ("STOP.", True), ("  Stop!!", True),
+    ("please don't stop texting me", True),     # deliberate: keyword match, never guess intent
+    ("unsubscribe me", True), ("STOPALL", True),
+])
+def test_stop_keyword_matching(reply, opted_out):
+    out = _one(_sample0(last_message=reply))
+    assert (out["next_message"] is None) == opted_out, reply
+
+
+def test_late_night_contact_sends_next_morning_inside_legal_window():
+    cases = {
+        "2025-12-09T04:30:00Z": "2025-12-09T09:00:00-06:00",   # 22:30 local -> next morning
+        "2025-12-09T02:59:00Z": "2025-12-09T09:00:00-06:00",   # 20:59 local -> next morning
+        "2025-12-08T13:59:00Z": "2025-12-08T09:00:00-06:00",   # 07:59 local -> same day, 09:00
+    }
+    for utc, expected in cases.items():
+        send = _one(_sample0(last_interaction=utc))["next_message"]["send_at"]
+        assert send == expected and 8 <= int(send[11:13]) < 21, (utc, send)
+
+
+def test_now_is_a_floor_for_the_send_time():
+    from datetime import datetime
+    now = datetime.fromisoformat("2026-02-10T14:00:00-06:00")
+    send = _one(_sample0(), now=now)["next_message"]["send_at"]
+    assert send == "2026-02-11T09:00:00-06:00"             # months-old contact: next 09:00 after --now
+    # an earlier --now changes nothing
+    assert _one(_sample0(), now=datetime.fromisoformat("2025-12-01T00:00:00-06:00"))["next_message"]["send_at"] \
+        == "2025-12-09T09:00:00-06:00"

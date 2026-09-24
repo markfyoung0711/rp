@@ -18,7 +18,7 @@ uv run python scripts/decision_table.py                     # all 120 consent ×
 uv run python scripts/report.py <file> [--only ID]         # paste-ready problem report (out/report.txt)
 uv run python scripts/validate_rules.py --brand             # check rules, properties and branding; preview each channel
 uv run pytest                                              # tests
-uv run python scripts/run_checks.py --full                 # the code-review checklist, automated (34 checks)
+uv run python scripts/run_checks.py --full                 # the code-review checklist, automated (35 checks)
 uv run python scripts/gen_records.py 100 > /tmp/p.jsonl    # generate test records (performance: plans/performance.md)
 ```
 
