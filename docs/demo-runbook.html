@@ -83,6 +83,17 @@ td.t-num{min-width:0;font:600 12px var(--mono);color:var(--muted);white-space:no
 ol.plain{margin:0;padding-left:22px;display:grid;gap:6px}
 footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);color:var(--muted);font-size:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.read{background:var(--surface);border:1.5px solid var(--accent);border-radius:10px;padding:18px 20px;margin:14px 0}
+.read .tag{color:var(--accent)}
+.read p{font-size:19px;line-height:1.55;margin:6px 0 0;max-width:none}
+.read p + p{margin-top:12px}
+.calm{background:var(--accent-soft);border-radius:10px;padding:12px 16px;font-size:15px;margin-top:6px}
+.if{display:grid;grid-template-columns:minmax(0,190px) 1fr;gap:6px 14px;margin-top:10px;font-size:15.5px}
+.if b{color:var(--accent)}
+@media (max-width:560px){.if{grid-template-columns:1fr}}
+.part1 .say p{font-size:18px;font-style:normal;line-height:1.55}
+.say p + p{margin-top:10px}
 </style>
 
 <div class="wrap">
@@ -98,6 +109,26 @@ footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);color:v
   </div>
 </header>
 
+
+<h2>Start here: read this aloud</h2>
+<div class="calm">It’s fine to read from this page; everyone does. Slow down, pause after each command, and let the screen do the talking. If you lose your place, say “let me show you that on screen” and run the next command.</div>
+
+<div class="read"><div class="tag">1 · Opening: read this first</div>
+<p>“Before I start: I’ve planned about twelve minutes in five parts. First, the four decisions you asked for, on your samples. Then your twelve hold-out records. Then how the bot learns its rules. Then where the AI fits. And last, a decision table with a policy question for you.”</p>
+<p>“Do you want to go in that order, start with the hold-out, or is there something you’d like to see first?”</p>
+</div>
+<div class="if">
+  <b>“Go ahead”</b><span>Read part 1 below.</span>
+  <b>“Hold-out first”</b><span>Go to part 2 (the hold-out). After it, say: <i>“Now let me show you why those outputs look the way they do,”</i> and come back to part 1.</span>
+  <b>“We have questions”</b><span>Answer each in one sentence, then run the matching command from the test table or the cheat sheet.</span>
+</div>
+
+<div class="read"><div class="tag">2 · What it is: read before the first command</div>
+<p>“This is a decision bot for leasing outreach. For each record, it decides <b>whether</b> to contact the person, on <b>which channel</b>, <b>when</b>, and <b>what to say</b>, plus the next step.”</p>
+<p>“Everything that’s legal or compliance-related (consent, opt-out, timing, fair housing) is decided by code, so it’s guaranteed and explainable. The rules are learned from your labelled examples. AI is optional and only writes the wording.”</p>
+<p>“Let me start with your two samples.”</p>
+</div>
+
 <h2>Your role</h2>
 <div class="roles">
   <div class="you"><b>You: the operator</b><span>You run the bot, show its decisions and explain why.</span></div>
@@ -108,7 +139,9 @@ footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);color:v
 
 <h2>Before the interview</h2>
 <ul class="check">
-  <li><input type="checkbox" id="pre1"><label for="pre1">Terminal open in <code>~/realpage</code>; font large enough to screen-share.</label></li>
+  <li><input type="checkbox" id="pre0"><label for="pre0">Shared screen: terminal in <code>~/realpage</code>, font 16–18 pt, window ≥ 120 characters wide. Private screen: this runbook and the cheat sheet.</label></li>
+  <li><input type="checkbox" id="pre1"><label for="pre1">Run <code>git pull &amp;&amp; uv sync</code>, then <code>rm -rf out/</code> and <code>clear</code>.</label></li>
+  <li><input type="checkbox" id="pre7"><label for="pre7">Hold-out file will be saved as <code>~/realpage/holdout.jsonl</code> (the “hold” in the name also blocks learning from it).</label></li>
   <li><input type="checkbox" id="pre2"><label for="pre2">Run <code>uv run python scripts/run_checks.py --full</code>: expect <b>33/33 passed</b>.</label></li>
   <li><input type="checkbox" id="pre3"><label for="pre3">Dry-run all five parts once; keep the <code>out/</code> files as a backup.</label></li>
   <li><input type="checkbox" id="pre6"><label for="pre6">Decide on part 4: allow the $0.05 budget (about $0.004 spent), or show only the cost guard.</label></li>
@@ -118,14 +151,18 @@ footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);color:v
 
 <h2>During the demo: five parts, about 12 minutes</h2>
 <ol class="steps">
-  <li><div class="step-body">
+  <li class="part1"><div class="step-body">
     <h3>What they said they’d test: the four decisions</h3>
     <p class="show">The assignment: read each record, decide <b>whether</b> to communicate, <b>how</b>, and <b>what</b> to say, with output that <b>semantically matches</b> the expected result.</p>
     <div class="cmd"><pre>uv run bot.py -i plans/sample.jsonl --compare</pre><button type="button" data-copy>Copy</button></div>
     <p class="show"><b>Point at:</b> ✅ on channel, send time, subject, body, CTA and next action for both samples; the “why” list under each; RUN STATS: “Controllable fields … all match: 2/2”, latency PASS, safety PASS, PII leaked 0, cost $0.</p>
+    
+    
+    <div class="say"><div class="tag">Say, after the samples run</div><p>“Here’s the output for both samples. Each green check is a field compared with your expected answer: channel, send time, subject, message, call to action and next action. They all match.”</p><p>“Under each record is a ‘why’ list. For Taylor: SMS, because it’s Taylor’s first preferred channel and there’s consent for it. Nine a.m. the next day, because nine had already passed at the last contact. And a short welcome sequence, because the move-in is 32 days away.”</p><p>“At the bottom, the run stats: speed, safety checks, personal data withheld, and cost: zero.”</p></div>
+    <div class="say"><div class="tag">Say, before the no-consent case</div><p>“Now the ‘whether’ decision. This person hasn’t consented to any channel.”</p></div>
     <div class="cmd"><pre>uv run bot.py -i tests/edge_cases.jsonl --only no_consent</pre><button type="button" data-copy>Copy</button></div>
-    <p class="show"><b>“Whether”:</b> no consent → <b>no send</b>, with the reason. (Optional extras: <code>--only kids</code> for fair housing, <code>--only MNT</code> for an unfamiliar record type.)</p>
-    <div class="say"><div class="tag">Say</div><p>“Code decides whether, how and when, because those are the compliance-critical choices. Both samples match on every field, and when it shouldn’t send, it says why.”</p></div>
+    <div class="say"><div class="tag">Say</div><p>“No message, and it says why: no channel with consent. It never guesses.”</p></div>
+    <p class="show">Optional extras: <code>--only kids</code> (fair housing), <code>--only MNT</code> (an unfamiliar record type).</p>
     <p class="show"><b>Required states:</b> RUN STATS shows <i>Req. states: consent_verified 2/2, fair_housing_check_passed 2/2, brand_style_applied 2/2: PASS</i>. The samples require all three; the spec only defines the first two.</p>
     <div class="cmd"><pre>sed -n '/^brand_default/,$p' config/rules.yaml && sed -n '/  brand:/,$p' config/properties.yaml</pre><button type="button" data-copy>Copy</button></div>
     <div class="say"><div class="tag">Say</div><p>“Your samples require a <i>brand_style_applied</i> state, but nothing defines it. To model the branding state, I derived this configuration file that applies branding rules: the name the property goes by, banned sales phrases, no emoji or shouting, and length limits. There are defaults for any property, and each property can override them. Every message is checked against it, AI wording that breaks it falls back to the template, and each output reports the state as verified.”</p></div>
