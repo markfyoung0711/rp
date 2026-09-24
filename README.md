@@ -10,7 +10,7 @@ Requires [uv](https://docs.astral.sh/uv/) and Python 3.12+.
 uv sync                                                    # install (once)
 uv run bot.py -i plans/sample.jsonl --compare              # the two samples, compared field by field
 uv run bot.py -i tests/edge_cases.jsonl                    # 16 unseen-style cases (Levels 1-3)
-uv run bot.py -i holdout.jsonl -o out/holdout.jsonl        # a hold-out file -> an output file
+uv run bot.py -i holdout.jsonl -o out/holdout.jsonl --answer-only   # hold-out -> answers in the expected shape
 uv run bot.py --paste -o out/holdout.jsonl                 # paste records, then Ctrl+D
 uv run learn.py plans/sample.jsonl --eval                  # learn the rules from labelled examples; leave-one-out test
 uv run python scripts/decision_table.py                     # all 120 consent × preference cases vs the policy

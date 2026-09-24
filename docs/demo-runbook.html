@@ -173,11 +173,11 @@ footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);color:v
   <li><div class="step-body">
     <h3>The hold-out: their 12 records</h3>
     <div class="alt">
-      <div><h4>They send a file</h4><p class="show">Save it with “holdout” in the name (it also blocks learning from it):</p><div class="cmd"><pre>uv run bot.py -i holdout.jsonl -o out/holdout.jsonl --compare</pre><button type="button" data-copy>Copy</button></div></div>
-      <div><h4>They paste text</h4><p class="show">Paste, then <code>Ctrl+D</code>. JSONL, a JSON list or chat-style text all work.</p><div class="cmd"><pre>uv run bot.py --paste -o out/holdout.jsonl --compare</pre><button type="button" data-copy>Copy</button></div></div>
+      <div><h4>They send a file</h4><p class="show">Save it with “holdout” in the name (it also blocks learning from it):</p><div class="cmd"><pre>uv run bot.py -i holdout.jsonl -o out/holdout.jsonl --answer-only --compare</pre><button type="button" data-copy>Copy</button></div></div>
+      <div><h4>They paste text</h4><p class="show">Paste, then <code>Ctrl+D</code>. JSONL, a JSON list or chat-style text all work.</p><div class="cmd"><pre>uv run bot.py --paste -o out/holdout.jsonl --answer-only --compare</pre><button type="button" data-copy>Copy</button></div></div>
     </div>
-    <p class="show"><b>Hand over:</b> <code>out/holdout.jsonl</code>, or copy the block between <code>=== BEGIN OUTPUT ===</code> and <code>=== END OUTPUT ===</code>. If their records include <code>expected</code>, RUN STATS gives the live score per field.</p>
-    <div class="say"><div class="tag">Say</div><p>“12 unseen records, one decision each, exported. Nothing was tuned to these; it never learns from a hold-out.”</p></div>
+    <p class="show"><b>Hand over:</b> <code>out/holdout.jsonl</code>, or copy the block between <code>=== BEGIN OUTPUT ===</code> and <code>=== END OUTPUT ===</code>. <code>--answer-only</code> makes that exactly their <code>expected</code> shape: <code>task_id</code>, <code>next_message</code>, <code>next_action</code>, one line per record. The screen still shows every reason and RUN STATS to talk through. If their records include <code>expected</code>, <code>--compare</code> gives a live score per field.</p>
+    <div class="say"><div class="tag">Say</div><p>“Twelve unseen records, one decision each, exported in the same shape as your expected answers. The reasons are on screen if you want to go through any of them. Nothing was tuned to these; it never learns from a hold-out.”</p></div>
   </div></li>
 
   <li><div class="step-body">

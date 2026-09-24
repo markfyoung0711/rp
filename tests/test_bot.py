@@ -307,3 +307,15 @@ def test_bot_refuses_to_run_on_invalid_rules(tmp_path, monkeypatch):
     r = subprocess.run(["uv", "run", "--project", str(ROOT), "python", "bot.py", "-i", "plans/sample.jsonl"],
                        cwd=work, capture_output=True, text=True)
     assert r.returncode == 6 and "outside the legal window" in r.stderr, r.stderr[-400:]
+
+
+def test_answer_only_matches_the_expected_shape(tmp_path):
+    import subprocess
+    out = tmp_path / "answers.jsonl"
+    subprocess.run(["uv", "run", "bot.py", "-i", "plans/sample.jsonl", "--answer-only", "--quiet", "-o", str(out)],
+                   cwd=ROOT, check=True, capture_output=True)
+    rows = [json.loads(line) for line in out.read_text().splitlines()]
+    samples = [json.loads(line) for line in SAMPLES.splitlines() if line.strip()]
+    assert [set(r) for r in rows] == [{"task_id", "next_message", "next_action"}] * 2
+    for r, s in zip(rows, samples):
+        assert {k: r[k] for k in ("next_message", "next_action")} == s["expected"]
