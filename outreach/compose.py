@@ -189,13 +189,14 @@ def _tour(case, channel, send_at, lang, name, prop, facts, link, opt_out, rule) 
         subject = f"Tour {prop}—See the {' & '.join(s for s, _ in labels)} you asked about" if labels else f"Tour {prop}—Book a visit"
         parts = []
         if move:
-            parts.append(f"Since you’re planning a {move} move, ")
+            article = "an" if move[0].lower() in "aeiou" else "a"
+            parts.append(f"Since you’re planning {article} {move} move, ")
         if labels:
             parts.append(("here’s" if move else "Here’s") + f" a quick look at our {' and '.join(b for _, b in labels)}.")
         elif move:
             parts.append(f"now is a great time to see {prop} in person.")
         first = "".join(parts) or f"We’d love to show you around {prop}."
-        closer = (facts or {}).get("email_closer") or "Book a visit to see it in person."
+        closer = (facts or {}).get("email_closer") or "We’d love to show you around."
         core = f"Hi {name},\n{first} {closer}"
         tail = (f"Book now → {link}\n" if link else "Reply to this email to set up a visit.\n") + opt_out
     if link:

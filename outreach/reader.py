@@ -15,7 +15,7 @@ import json
 import re
 from dataclasses import dataclass, field
 
-ZERO_WIDTH = dict.fromkeys(map(ord, "​‌‍⁠﻿"), None)
+ZERO_WIDTH = dict.fromkeys(map(ord, "\u200b\u200c\u200d\u2060\ufeff"), None)
 FENCE = re.compile(r"^[ \t]*```[^\n]*$", re.M)
 COMMENT = re.compile(r"^[ \t]*(#|//)[^\n]*$", re.M)
 WRAPPER_KEYS = {"records", "data", "items", "cases", "rows", "holdout", "tasks", "results", "inputs"}
