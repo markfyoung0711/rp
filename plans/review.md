@@ -410,6 +410,43 @@ To ensure your script doesn't throw a validation error during the live run, tell
 
 I can provide the clean wrapper code to ensure your processing stays under the 2-second timeout window.
 
+## Review 2 addendum — core functionality blueprint
+
+> Pasted word for word, 2026-09-24.
+
+Yes, I have defined it. To guarantee you pass the interview demo at noon today, core functionality must be stripped of all software engineering platform overhead (databases, UIs, webhooks) and defined strictly as a stateless, CLI-driven batch processing pipeline.
+Here is the exact blueprint of the core functionality you must target and lock down over the next few hours to handle the 12 surprise hold-out records:
+## 1. The Core Execution Pipeline (Stateless)
+Your script must implement this exact 5-step loop for each line in the incoming JSONL file:
+
+* Ingestion: Read a line from the input file and parse it into an internal Python dictionary or Pydantic model.
+* Consent & Suppression Gate (Hardcoded Code): If consent flags for all listed channel_preferences are false, immediately short-circuit. Set next_message to null, set next_action to a suppression status, and record the reason. Do not call the LLM for this record to save latency and ensure compliance.
+* Channel & Timing Derivation (Hardcoded Code):
+* Select the first channel in channel_preferences where consent is true.
+   * Parse input.last_interaction and add the day offset implied by the lifecycle_stage or task_id (e.g., day0 = +0 days, day3 = +3 days). Map this to the target local timezone and output a perfectly formatted ISO 8601 string with the correct UTC offset.
+* Content Generation (Structured LLM Call): Pass the input profile fields, the chosen channel, the target CTA, and the sample.jsonl data (as few-shot context) to the LLM. Enforce a JSON schema constraint so the LLM only fills out the text fields (subject, body, cta.link/options).
+* Output Construction & Aggregation: Package the decisions back into the exact structural shape of the expected block from the spec, ensuring it includes the record's original task_id.
+
+## 2. Performance & Operational Benchmarks
+
+* The 2-Second Timeout: The spec explicitly demands p95_latency_ms: 2000. You cannot process 12 items sequentially if each LLM call takes 1.5 seconds. Core functionality must use Python's asyncio or concurrent.futures to fire all 12 API calls to Anthropic/OpenAI in parallel.
+* Fault-Tolerant Loop: If record #4 has a malformed timezone or missing name field, your script must not crash. Core functionality includes wrapping each row's execution in a try/except block, logging the error for row #4, and continuing to generate valid outputs for the remaining 11 rows.
+* One-Click Export: You must be able to run a terminal command like python bot.py --input holdout.jsonl --output results.jsonl and have it instantly available to copy-paste or upload.
+
+## 3. Defer Everything Else (The "Drop" List)
+To hit your noon deadline, you must completely drop the following features from your active build list:
+
+* ❌ PostgreSQL database migrations and row-level security setup.
+* ❌ React split-pane frontend interfaces.
+* ❌ Real Twilio / SendGrid API integrations (use the sandbox text-only format).
+* ❌ Yelp and Google review scraping or ingestion pipelines.
+* ❌ Inbound webhook routers for handling inbound maintenance text messages.
+
+To ensure this core pipeline works seamlessly, tell me:
+
+* Do you want me to write the complete, async Python script (bot.py) that handles this exact ingestion, parallel LLM execution, and JSONL output mapping?
+* Which LLM provider and model (e.g., Anthropic Claude Sonnet 3.5, OpenAI GPT-4o) do you have API keys ready for right now?
+
 ---
 
 # Reconciliation of reviews 1 and 2
@@ -438,3 +475,7 @@ I can provide the clean wrapper code to ensure your processing stays under the 2
 - **STOP keywords:** a fixed keyword gate (STOP, STOPALL, UNSUBSCRIBE, CANCEL, END, QUIT) at the very front, before any model call. If any inbound text field matches: no message, and the LLM is not called.
 - **Unknown or transactional `primary_cta`:** a fallback CTA table, with a transactional tone and the opt-out wording kept.
 - **CLI first:** `run_eval.py --input <file> --output <file>`, with records processed concurrently and latency measured against the 2,000 ms p95.
+
+**The review 2 addendum (core blueprint) is adopted as the build spec for today,** with one correction: it restates "day0 = +0 days", but the expected `send_at` for `prospect_welcome_day0` is the *next* day at 09:00. The base time plus the offset (09:04 local) is already past the 09:00 send hour, so the send rolls to the next day. The rule is: `candidate = local(last_interaction) + offset days`, set to the send hour; if that is not after `last_interaction`, add one day. This reproduces both samples.
+
+Its closing questions (which provider and model) are answered by D-014: Anthropic Claude, with Haiku 4.5 for speed under the 2 s p95, and Sonnet 5 as an option.
